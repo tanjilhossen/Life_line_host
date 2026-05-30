@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>হাসপাতাল ড্যাশবোর্ড - LifeLine</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@300;400;500;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDAD7aQKuo38f_YoppKtZDsPwR43si-GW0"></script>
+    <style>
+        body {
+            font-family: 'Hind Siliguri', 'Inter', sans-serif;
+            background: #090d16;
+            color: #f1f5f9;
+        }
+        /* Glassmorphism details */
+        .glass-card {
+            background: rgba(15, 23, 42, 0.45);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 20px;
+            backdrop-filter: blur(20px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            transition: border-color 0.3s;
+        }
+        .glass-card:hover {
+            border-color: rgba(99, 102, 241, 0.25);
+        }
+        .border-top-blue { border-top: 4px solid #3b82f6; }
+        .border-top-indigo { border-top: 4px solid #6366f1; }
+        .border-top-slate { border-top: 4px solid #475569; }
+        
+        .form-input {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 12px 14px;
+            color: #fff;
+            outline: none;
+            transition: all 0.25s;
+        }
+        .form-input:focus {
+            border-color: #6366f1;
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+            background: rgba(255, 255, 255, 0.08);
+        }
+        .form-input option {
+            background: #0f172a;
+            color: #fff;
+        }
+        
+        /* Tab styles */
+        .tab-btn.active {
+            border-color: #6366f1;
+            color: #818cf8;
+            background: rgba(99, 102, 241, 0.06);
+        }
+    </style>
+</head>
+<body class="min-h-screen relative overflow-x-hidden">
+
+    <!-- Decorative Glow Elements -->
+    <div class="absolute top-0 left-1/4 w-[500px] h-[500px] bg-blue-600/10 rounded-full blur-[140px] pointer-events-none -z-10"></div>
+    <div class="absolute bottom-1/4 right-1/4 w-[400px] h-[400px] bg-indigo-600/10 rounded-full blur-[120px] pointer-events-none -z-10"></div>
+
+    <!-- NAVBAR -->
+    <nav class="sticky top-0 z-50 bg-[#090d16]/80 backdrop-filter backdrop-blur-lg border-b border-white/5 px-6 py-4 flex justify-between items-center">
+        <div class="flex items-center gap-3">
+            <div class="bg-blue-600/20 border border-blue-500/30 w-10 h-10 rounded-xl flex items-center justify-center text-xl shadow-lg">🏥</div>
+            <div>
+                <h1 class="text-white font-extrabold text-lg leading-tight" id="hospitalNameDisplay">হসপিটাল পোর্টাল</h1>
+                <div class="text-xs text-blue-400 font-medium">LifeLine Health Support</div>
+            </div>
+        </div>
+        <button onclick="logout()" class="text-sm font-bold text-red-400 bg-red-500/10 hover:bg-red-500/20 px-5 py-2 border border-red-500/30 rounded-xl transition duration-200">লগআউট</button>
+    </nav>
+
+    <!-- MAIN GRID -->
+    <main class="container mx-auto p-6 mt-6 max-w-6xl grid lg:grid-cols-2 gap-8">
+        
+        <!-- LEFT PANEL: PROFILE & SEAT FORM -->
+        <section class="glass-card border-top-blue p-8 space-y-6">
+            <div>
+                <h2 class="text-2xl font-extrabold text-white flex items-center gap-2.5">
+                    🏥 হসপিটাল প্রোফাইল ও সিট আপডেট
+                </h2>
+                <p class="text-slate-400 text-xs mt-1.5 leading-relaxed">বর্তমান লাইভ ICU ও ইমার্জেন্সি বেড সংখ্যা এবং ম্যাপ থেকে সঠিক ভৌগোলিক অবস্থান আপডেট করুন।</p>
+            </div>
+
+            <form id="updateProfileForm" class="space-y-6">
+                <!-- Beds Count -->
+                <div class="grid sm:grid-cols-2 gap-4">
+                    <div>
+                        <label for="icuBeds" class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">ICU Bed Available</label>
+                        <input type="number" id="icuBeds" min="0" step="1" required class="form-input text-lg font-bold text-blue-400">
+                    </div>
+                    <div>
+                        <label for="emergencyBeds" class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Emergency Bed Available</label>
+                        <input type="number" id="emergencyBeds" min="0" step="1" required class="form-input text-lg font-bold text-emerald-400">
+                    </div>
+                </div>
+
+                <!-- Info -->
+                <div class="grid sm:grid-cols-2 gap-4">
+                    <div>
+                        <label for="hPhone" class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Phone</label>
+                        <input type="text" id="hPhone" class="form-input" placeholder="যোগাযোগের ফোন নম্বর">
+                    </div>
+                    <div>
+                        <label for="hContactPerson" class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Contact Person</label>
+                        <input type="text" id="hContactPerson" class="form-input" placeholder="দায়িত্বপ্রাপ্ত কর্মকর্তা">
+                    </div>
+                </div>
+
+                <!-- Division and District -->
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">জেলা ও উপজেলা</label>
+                    <div class="grid grid-cols-2 gap-3">
+                        <select id="hLocationName" required class="form-input cursor-pointer" onchange="populateUpazilas('hLocationName', 'hUpazila')">
+                            <option value="" disabled selected>জেলা</option>
+                        </select>
+                        <select id="hUpazila" required class="form-input cursor-pointer" disabled>
+                            <option value="" disabled selected>উপজেলা</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Geolocation & Google Maps -->
+                <div class="space-y-2">
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400">ম্যাপে ভৌগোলিক অবস্থান নির্ধারণ</label>
+                    <div class="relative h-[280px] rounded-xl border border-white/10 overflow-hidden shadow-inner">
+                        <div id="mapControls" class="absolute top-3 left-3 z-10 hidden">
+                            <button type="button" id="findLocationBtnInside" class="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-4 py-2.5 rounded-lg text-xs font-bold shadow-lg hover:from-blue-700 hover:to-indigo-700 transition duration-200">
+                                📍 আমার অবস্থান খুঁজুন
+                            </button>
+                        </div>
+                        <div id="currentLocationControl" class="absolute bottom-3 right-3 z-10 hidden">
+                            <button type="button" id="useCurrentLocation" class="bg-slate-900 border border-white/10 p-2.5 rounded-full shadow-lg hover:bg-slate-800 transition">
+                                🎯
+                            </button>
+                        </div>
+                        <div id="locationMap" class="w-full h-full bg-slate-950"></div>
+                    </div>
+                    <div id="selectedLocationText" class="text-xs text-indigo-400 font-medium flex items-center gap-1.5">
+                        ম্যাপ থেকে লোকেশন সিলেক্ট করুন।
+                    </div>
+                </div>
+
+                <button type="submit" class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-extrabold py-3.5 rounded-xl transition duration-200 shadow-xl shadow-blue-600/20 mt-4 text-base">
+                    আপডেট সেভ করুন
+                </button>
+            </form>
+        </section>
+
+        <!-- RIGHT PANEL: MEDICAL PROFILE & DEV INFO -->
+        <section class="space-y-6">
+            
+            <!-- PROFILE DISPLAY CARD -->
+            <div class="glass-card border-top-slate p-8 space-y-4">
+                <h2 class="text-xl font-extrabold text-white flex items-center gap-2">
+                    📑 মেডিকেল প্রোফাইল
+                </h2>
+                <div id="hospitalProfile" class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs text-slate-300">
+                    <!-- Injected dynamically by JS -->
+                </div>
+            </div>
+
+            <!-- API CREDENTIALS & AUTOMATED INTEGRATION CARD -->
+            <div class="glass-card border-top-indigo p-8 space-y-6">
+                <div class="flex items-center gap-3 border-b border-white/5 pb-4">
+                    <span class="text-2xl">🔌</span>
+                    <div>
+                        <h2 class="text-xl font-bold text-white">স্বয়ংক্রিয় API ইন্টিগ্রেশন</h2>
+                        <p class="text-[11px] text-indigo-400 mt-0.5">আপনার হাসপাতালের স্থানীয় সফটওয়্যার বা ডেডিকেটেড অ্যাপের সাথে LifeLine যুক্ত করুন।</p>
+                    </div>
+                </div>
+
+                <div class="space-y-5">
+                    <!-- Secure Key display -->
+                    <div class="bg-white/5 p-4 rounded-xl border border-white/5 space-y-3.5">
+                        <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-400">আপনার সিকিউর API Key</h3>
+                        
+                        <div class="flex items-center gap-2">
+                            <div class="relative flex-1 bg-black/40 border border-white/10 rounded-lg overflow-hidden flex items-center px-3 py-2">
+                                <input type="password" id="apiKeyDisplay" readonly value="" class="bg-transparent border-none text-indigo-300 font-mono text-xs w-full focus:outline-none select-all">
+                                <button type="button" onclick="toggleApiKeyVisibility()" class="text-slate-400 hover:text-white transition px-1.5" id="eyeBtn" title="কী দেখুন">
+                                    👁️
+                                </button>
+                            </div>
+                            <button type="button" onclick="copyApiKey()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-4 py-2 rounded-lg transition text-xs whitespace-nowrap shadow-md shadow-indigo-600/10">
+                                কপি
+                            </button>
+                        </div>
+
+                        <button type="button" onclick="regenerateApiKey()" class="text-[10px] text-rose-400 hover:text-rose-300 font-semibold flex items-center gap-1 transition">
+                            🔄 নতুন API Key তৈরি করুন (পুনর্স্থাপন)
+                        </button>
+                    </div>
+
+                    <!-- Specs -->
+                    <div class="bg-black/30 p-4 rounded-xl border border-white/5 text-[11px] space-y-2">
+                        <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">API এন্ডপয়েন্ট স্পেসিফিকেশন</h3>
+                        <div class="flex items-center gap-2"><strong class="bg-indigo-950 text-indigo-300 px-2 py-0.5 rounded border border-indigo-900/40">METHOD:</strong> POST</div>
+                        <div class="flex items-center gap-2"><strong class="bg-indigo-950 text-indigo-300 px-2 py-0.5 rounded border border-indigo-900/40">ENDPOINT:</strong> <span class="font-mono text-indigo-300 select-all" id="endpointUrl">/api/v1/hospital/update-beds</span></div>
+                        <div class="flex items-center gap-2"><strong class="bg-indigo-950 text-indigo-300 px-2 py-0.5 rounded border border-indigo-900/40">HEADER:</strong> <span class="font-mono">x-api-key: YOUR_API_KEY</span></div>
+                    </div>
+
+                    <!-- Tabbed code examples -->
+                    <div class="space-y-2">
+                        <h3 class="text-xs font-semibold tracking-wide text-slate-300">ডেভেলপার কোড এক্সাম্পল</h3>
+                        <div class="bg-black/40 border border-white/10 rounded-xl overflow-hidden">
+                            <!-- Tabs -->
+                            <div class="flex border-b border-white/5 bg-white/[0.02]">
+                                <button type="button" onclick="switchTab('curl')" id="tab-curl" class="tab-btn active px-3.5 py-2 text-[10px] font-bold border-b-2 border-indigo-500 text-indigo-400">cURL</button>
+                                <button type="button" onclick="switchTab('js')" id="tab-js" class="tab-btn px-3.5 py-2 text-[10px] font-bold border-b-2 border-transparent text-slate-400 hover:text-white transition">JavaScript</button>
+                                <button type="button" onclick="switchTab('python')" id="tab-python" class="tab-btn px-3.5 py-2 text-[10px] font-bold border-b-2 border-transparent text-slate-400 hover:text-white transition">Python</button>
+                            </div>
+
+                            <!-- Snippets -->
+                            <div class="p-3 font-mono text-[10px] text-slate-300 overflow-x-auto relative min-h-[90px]">
+                                <button type="button" onclick="copySnippet()" class="absolute top-2.5 right-2.5 bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white border border-white/5 transition px-2 py-1 rounded text-[9px]" title="কোড কপি করুন">
+                                    কপি কোড
+                                </button>
+                                <pre id="code-curl" class="code-block whitespace-pre-wrap select-all">curl -X POST http://localhost:3000/api/v1/hospital/update-beds \
+  -H "Content-Type: application/json" \
+  -H "x-api-key: <span class="api-key-placeholder text-indigo-400 font-bold">YOUR_API_KEY</span>" \
+  -d '{
+    "icu_available": 5,
+    "emergency_bed_available": 12
+  }'</pre>
+                                <pre id="code-js" class="code-block hidden whitespace-pre-wrap select-all">fetch('http://localhost:3000/api/v1/hospital/update-beds', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'x-api-key': '<span class="api-key-placeholder text-indigo-400 font-bold">YOUR_API_KEY</span>'
+  },
+  body: JSON.stringify({
+    icu_available: 5,
+    emergency_bed_available: 12
+  })
+})
+.then(res => res.json())
+.then(data => console.log(data));</pre>
+                                <pre id="code-python" class="code-block hidden whitespace-pre-wrap select-all">import requests
+
+url = "http://localhost:3000/api/v1/hospital/update-beds"
+headers = {
+    "x-api-key": "<span class="api-key-placeholder text-indigo-400 font-bold">YOUR_API_KEY</span>",
+    "Content-Type": "application/json"
+}
+payload = {
+    "icu_available": 5,
+    "emergency_bed_available": 12
+}
+
+response = requests.post(url, headers=headers, json=payload)
+print(response.json())</pre>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </section>
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="text-center py-8 text-xs text-slate-500 border-t border-white/5 mt-16">
+        <p>© ২০২৬ <a href="/" class="text-indigo-400 hover:underline">LifeLine</a> — স্বয়ংক্রিয় চিকিৎসা সেবা নেটওয়ার্ক</p>
+    </footer>
+
+    <script src="/js/notify.js"></script>
+    <script src="/js/bd-districts.js"></script>
+    <script src="/js/hospital.js"></script>
+</body>
+</html>

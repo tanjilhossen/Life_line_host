@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LifeLine - Find a Doctor</title>
+    <link rel="stylesheet" href="css/doctor.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        /* Advanced Filtering UI CSS */
+        .search-container {
+            max-width: 1200px;
+            margin: -40px auto 30px;
+            background: var(--card-bg);
+            padding: 2rem;
+            border-radius: 1rem;
+            box-shadow: var(--shadow-lg);
+            border: 1px solid var(--border);
+            position: relative;
+            z-index: 10;
+        }
+
+        .search-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .filter-group label {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--text-main);
+        }
+
+        .filter-group input, .filter-group select {
+            padding: 0.75rem 1rem;
+            border: 1px solid var(--border);
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            outline: none;
+            transition: var(--transition);
+            background: var(--secondary-color);
+        }
+
+        .filter-group input:focus, .filter-group select:focus {
+            border-color: var(--primary-color);
+            background: white;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        .btn-search-clear {
+            background: var(--danger);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            width: 100%;
+        }
+
+        .btn-search-clear:hover {
+            background: #b91c1c;
+        }
+        
+        .no-result {
+            text-align: center;
+            padding: 3rem;
+            color: var(--text-muted);
+            grid-column: 1 / -1;
+        }
+
+        .no-result i {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            color: #cbd5e1;
+        }
+        
+        /* Highlight match */
+        .highlight {
+            background-color: #fef08a;
+            color: #854d0e;
+            padding: 0 2px;
+            border-radius: 2px;
+        }
+
+        /* Dynamic Stats Dashboard */
+        .stats-dashboard {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+            margin-top: 1rem;
+        }
+
+        .stat-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 1rem;
+            padding: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 1.25rem;
+            box-shadow: var(--shadow);
+            transition: var(--transition);
+        }
+
+        .stat-card:hover {
+            transform: translateY(-3px);
+            box-shadow: var(--shadow-lg);
+            border-color: rgba(37, 99, 235, 0.2);
+        }
+
+        .stat-icon-circle {
+            width: 56px;
+            height: 56px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            transition: var(--transition);
+        }
+
+        .stat-card:hover .stat-icon-circle {
+            transform: scale(1.08) rotate(5deg);
+        }
+
+        .stat-content h3 {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--text-main);
+            line-height: 1.2;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .stat-content p {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            font-weight: 500;
+            margin-top: 2px;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="header-container">
+            <a href="index.html" class="logo">
+                <i class="fas fa-heartbeat"></i> LifeLine
+            </a>
+            <div class="nav-links">
+                <a href="index.html"><i class="fas fa-home"></i> Home</a>
+            </div>
+        </div>
+    </header>
+
+    <section class="hero" style="padding-bottom: 80px;">
+        <h1>বিশেষজ্ঞ ডাক্তার খুঁজুন ও অ্যাপয়েন্টমেন্ট নিন</h1>
+        <p>আপনার জেলার সেরা ডাক্তারদের তালিকা দেখুন এবং সহজেই ঘরে বসে অনলাইনে সিরিয়াল বুক করুন।</p>
+    </section>
+
+    <!-- Advanced Notice -->
+    <div style="background-color: #fee2e2; border-bottom: 1px solid #fca5a5; padding: 15px; text-align: center; font-weight: 600; color: #991b1b; margin-bottom: 2rem;">
+        <i class="fas fa-info-circle"></i> অ্যাপয়েন্টমেন্ট নিশ্চিত করার জন্য ১০০ টাকা অ্যাডভান্স প্রদান করতে হবে। বাকি টাকা চেম্বারে গিয়ে প্রদান করতে হবে।
+    </div>
+
+    <!-- Live Statistics Dashboard -->
+    <div class="container" style="margin-top: 0; margin-bottom: 0; padding-bottom: 0;">
+        <div class="stats-dashboard">
+            <div class="stat-card">
+                <div class="stat-icon-circle" style="background: rgba(37,99,235,0.08); color: var(--primary-color);">
+                    <i class="fas fa-user-md"></i>
+                </div>
+                <div class="stat-content">
+                    <h3 id="statDoctors">--</h3>
+                    <p>নিবন্ধিত বিশেষজ্ঞ ডাক্তার</p>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon-circle" style="background: rgba(16,185,129,0.08); color: var(--accent);">
+                    <i class="fas fa-clinic-medical"></i>
+                </div>
+                <div class="stat-content">
+                    <h3 id="statChambers">--</h3>
+                    <p>মোট সক্রিয় চেম্বার</p>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon-circle" style="background: rgba(245,158,11,0.08); color: #f59e0b;">
+                    <i class="fas fa-user-clock"></i>
+                </div>
+                <div class="stat-content">
+                    <h3 id="statSittingToday">--</h3>
+                    <p>আজকে চেম্বারে বসবেন</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Advanced Search UI -->
+    <div class="container" style="margin-top: 0;">
+        <div class="search-container">
+            <div class="search-grid">
+                <!-- Name Search -->
+                <div class="filter-group">
+                    <label><i class="fas fa-user-md"></i> ডাক্তারের নাম</label>
+                    <input type="text" id="filterName" placeholder="নাম দিয়ে খুঁজুন...">
+                </div>
+                
+                <!-- Category Search -->
+                <div class="filter-group">
+                    <label><i class="fas fa-stethoscope"></i> ক্যাটাগরি/বিশেষজ্ঞতা</label>
+                    <select id="filterCategory">
+                        <option value="">সব ক্যাটাগরি</option>
+                        <option value="Medicine">Medicine (মেডিসিন)</option>
+                        <option value="Cardiology">Cardiology (হৃদরোগ)</option>
+                        <option value="Neurology">Neurology (স্নায়ুরোগ)</option>
+                        <option value="Orthopedics">Orthopedics (অর্থোপেডিক্স/হাড়)</option>
+                        <option value="Pediatrics">Pediatrics (শিশু রোগ)</option>
+                        <option value="Gynaecology">Gynaecology (গাইনী)</option>
+                        <option value="Dermatology">Dermatology (চর্ম ও যৌন)</option>
+                        <option value="ENT">ENT (নাক, কান, গলা)</option>
+                        <option value="Eye">Eye (চক্ষু)</option>
+                        <option value="Psychiatry">Psychiatry (মানসিক রোগ)</option>
+                        <option value="Dentistry">Dentistry (ডেন্টাল)</option>
+                        <option value="General Surgery">General Surgery (জেনারেল সার্জারি)</option>
+                    </select>
+                </div>
+
+                <!-- District Search -->
+                <div class="filter-group">
+                    <label><i class="fas fa-map-marker-alt"></i> জেলা</label>
+                    <select id="filterDistrict">
+                        <option value="">সব জেলা</option>
+                        <!-- All 64 districts -->
+                        <option value="Bagerhat">Bagerhat (বাগেরহাট)</option>
+                        <option value="Bandarban">Bandarban (বান্দরবান)</option>
+                        <option value="Barguna">Barguna (বরগুনা)</option>
+                        <option value="Barisal">Barisal (বরিশাল)</option>
+                        <option value="Bhola">Bhola (ভোলা)</option>
+                        <option value="Bogra">Bogra (বগুড়া)</option>
+                        <option value="Brahmanbaria">Brahmanbaria (ব্রাহ্মণবাড়িয়া)</option>
+                        <option value="Chandpur">Chandpur (চাঁদপুর)</option>
+                        <option value="Chapainawabganj">Chapainawabganj (চাঁপাইনবাবগঞ্জ)</option>
+                        <option value="Chattogram">Chattogram (চট্টগ্রাম)</option>
+                        <option value="Chuadanga">Chuadanga (চুয়াডাঙ্গা)</option>
+                        <option value="Comilla">Comilla (কুমিল্লা)</option>
+                        <option value="Cox's Bazar">Cox's Bazar (কক্সবাজার)</option>
+                        <option value="Dhaka">Dhaka (ঢাকা)</option>
+                        <option value="Dinajpur">Dinajpur (দিনাজপুর)</option>
+                        <option value="Faridpur">Faridpur (ফরিদপুর)</option>
+                        <option value="Feni">Feni (ফেনী)</option>
+                        <option value="Gaibandha">Gaibandha (গাইবান্ধা)</option>
+                        <option value="Gazipur">Gazipur (গাজীপুর)</option>
+                        <option value="Gopalganj">Gopalganj (গোপালগঞ্জ)</option>
+                        <option value="Habiganj">Habiganj (হবিগঞ্জ)</option>
+                        <option value="Jamalpur">Jamalpur (জামালপুর)</option>
+                        <option value="Jashore">Jashore (যশোর)</option>
+                        <option value="Jhalokati">Jhalokati (ঝালকাঠি)</option>
+                        <option value="Jhenaidah">Jhenaidah (ঝিনাইদহ)</option>
+                        <option value="Joypurhat">Joypurhat (জয়পুরহাট)</option>
+                        <option value="Khagrachari">Khagrachari (খাগড়াছড়ি)</option>
+                        <option value="Khulna">Khulna (খুলনা)</option>
+                        <option value="Kishoreganj">Kishoreganj (কিশোরগঞ্জ)</option>
+                        <option value="Kurigram">Kurigram (কুড়িগ্রাম)</option>
+                        <option value="Kushtia">Kushtia (কুষ্টিয়া)</option>
+                        <option value="Lakshmipur">Lakshmipur (লক্ষ্মীপুর)</option>
+                        <option value="Lalmonirhat">Lalmonirhat (লালমনিরহাট)</option>
+                        <option value="Madaripur">Madaripur (মাদারীপুর)</option>
+                        <option value="Magura">Magura (মাগুরা)</option>
+                        <option value="Manikganj">Manikganj (মানিকগঞ্জ)</option>
+                        <option value="Meherpur">Meherpur (মেহেরপুর)</option>
+                        <option value="Moulvibazar">Moulvibazar (মৌলভীবাজার)</option>
+                        <option value="Munshiganj">Munshiganj (মুন্সিগঞ্জ)</option>
+                        <option value="Mymensingh">Mymensingh (ময়মনসিংহ)</option>
+                        <option value="Naogaon">Naogaon (নওগাঁ)</option>
+                        <option value="Narail">Narail (নড়াইল)</option>
+                        <option value="Narayanganj">Narayanganj (নারায়ণগঞ্জ)</option>
+                        <option value="Narsingdi">Narsingdi (নরসিংদী)</option>
+                        <option value="Natore">Natore (নাটোর)</option>
+                        <option value="Netrokona">Netrokona (নেত্রকোণা)</option>
+                        <option value="Nilphamari">Nilphamari (নীলফামারী)</option>
+                        <option value="Noakhali">Noakhali (নোয়াখালী)</option>
+                        <option value="Pabna">Pabna (পাবনা)</option>
+                        <option value="Panchagarh">Panchagarh (পঞ্চগড়)</option>
+                        <option value="Patuakhali">Patuakhali (পটুয়াখালী)</option>
+                        <option value="Pirojpur">Pirojpur (পিরোজপুর)</option>
+                        <option value="Rajbari">Rajbari (রাজবাড়ী)</option>
+                        <option value="Rajshahi">Rajshahi (রাজশাহী)</option>
+                        <option value="Rangamati">Rangamati (রাঙ্গামাটি)</option>
+                        <option value="Rangpur">Rangpur (রংপুর)</option>
+                        <option value="Satkhira">Satkhira (সাতক্ষীরা)</option>
+                        <option value="Shariatpur">Shariatpur (শরীয়তপুর)</option>
+                        <option value="Sherpur">Sherpur (শেরপুর)</option>
+                        <option value="Sirajganj">Sirajganj (সিরাজগঞ্জ)</option>
+                        <option value="Sunamganj">Sunamganj (সুনামগঞ্জ)</option>
+                        <option value="Sylhet">Sylhet (সিলেট)</option>
+                        <option value="Tangail">Tangail (টাঙ্গাইল)</option>
+                        <option value="Thakurgaon">Thakurgaon (ঠাকুরগাঁও)</option>
+                    </select>
+            </div>
+
+            <!-- Date Search -->
+            <div class="filter-group">
+                <label><i class="far fa-calendar-alt"></i> অ্যাপয়েন্টমেন্টের তারিখ</label>
+                <input type="date" id="filterDate">
+            </div>
+
+            <!-- Clinic Search -->
+            <div class="filter-group">
+                <label><i class="fas fa-hospital-alt"></i> মেডিকেল/ক্লিনিকের নাম</label>
+                <input type="text" id="filterClinic" placeholder="ক্লিনিকের নাম লিখুন...">
+            </div>
+            </div>
+
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <p class="text-muted" style="font-size: 0.9rem;" id="resultCount">সার্চ রেজাল্ট লোড হচ্ছে...</p>
+                <button class="btn-search-clear" style="width:auto;" onclick="clearFilters()"><i class="fas fa-times"></i> ফিল্টার মুছুন</button>
+            </div>
+        </div>
+
+        <div id="loading" style="text-align:center; padding: 2rem;"><i class="fas fa-spinner fa-spin fa-3x text-primary" style="color:var(--primary-color)"></i></div>
+        <div class="doctor-grid" id="doctorGrid">
+            <!-- Dynamic Data -->
+        </div>
+    </div>
+
+    <script>
+        let allDoctors = [];
+
+        // Fetch all doctors ONCE when page loads
+        async function fetchAllDoctors() {
+            const grid = document.getElementById('doctorGrid');
+            const loading = document.getElementById('loading');
+            
+            try {
+                const res = await fetch('/api/public/doctors');
+                const data = await res.json();
+                
+                loading.style.display = 'none';
+
+                if (data.success) {
+                    allDoctors = data.data;
+                    renderDoctors(allDoctors);
+                } else {
+                    grid.innerHTML = '<p class="no-result">ডাটাবেস এরর।</p>';
+                }
+            } catch (err) {
+                loading.style.display = 'none';
+                grid.innerHTML = '<div class="no-result"><i class="fas fa-exclamation-triangle"></i><p>সার্ভার এরর। অনুগ্রহ করে আবার চেষ্টা করুন।</p></div>';
+            }
+        }
+
+        function highlightText(text, searchStr) {
+            if (!searchStr) return text;
+            const regex = new RegExp(`(${searchStr})`, 'gi');
+            return text.replace(regex, '<span class="highlight">$1</span>');
+        }
+
+        function formatBanglaTime(timeString) {
+            if(!timeString) return '';
+            const [h, m] = timeString.split(':').map(Number);
+            let period = 'AM';
+            let formattedH = h;
+            
+            if(h >= 12) {
+                period = 'PM';
+                if(h > 12) formattedH = h - 12;
+            }
+            if(h === 0) formattedH = 12;
+            
+            let bContext = '';
+            if(h >= 5 && h < 12) bContext = '(সকাল)';
+            else if(h >= 12 && h < 16) bContext = '(দুপুর)';
+            else if(h >= 16 && h < 18) bContext = '(বিকাল)';
+            else if(h >= 18 && h < 20) bContext = '(সন্ধ্যা)';
+            else bContext = '(রাত)';
+            
+            return `${String(formattedH).padStart(2,'0')}:${String(m).padStart(2,'0')} ${period} ${bContext}`;
+        }
+
+        // Render function
+        function renderDoctors(doctorsToRender, searchName = '', searchClinic = '', selectedDate = '') {
+            const grid = document.getElementById('doctorGrid');
+            const countEl = document.getElementById('resultCount');
+            grid.innerHTML = '';
+            
+            countEl.innerHTML = `<strong>${doctorsToRender.length}</strong> জন ডাক্তার পাওয়া গেছে`;
+
+            if (doctorsToRender.length === 0) {
+                grid.innerHTML = `
+                    <div class="no-result">
+                        <i class="fas fa-search-minus"></i>
+                        <h3>কোনো ডাক্তার পাওয়া যায়নি</h3>
+                        <p>আপনার ফিল্টারের সাথে মিলে এমন কোনো ডাক্তার নেই। অন্য কোনো সার্চ ট্রাই করুন।</p>
+                    </div>`;
+                return;
+            }
+
+            doctorsToRender.forEach(doc => {
+                const highlightedDocName = highlightText(doc.name, searchName);
+                
+                let chambersHtml = '';
+                if (doc.chambers && doc.chambers.length > 0) {
+                    doc.chambers.forEach(c => {
+                        const highlightedClinicName = highlightText(c.clinic_name, searchClinic);
+                        
+                        let dateStatusHtml = '';
+                        let isBookable = true;
+                        
+                        if (selectedDate) {
+                            // Check if doctor is on leave on selectedDate
+                            if (doc.leaves && doc.leaves.includes(selectedDate)) {
+                                dateStatusHtml = `<div style="margin-top:0.5rem; color:var(--danger); font-weight:bold; font-size:0.85rem;"><i class="fas fa-calendar-times"></i> এই তারিখে ডাক্তার ছুটিতে থাকবেন।</div>`;
+                                isBookable = false;
+                            } else {
+                                // Check override
+                                let override = doc.overrides ? doc.overrides.find(o => o.chamber_id === c.id && o.override_date === selectedDate) : null;
+                                if (override && override.booking_status === 'Full') {
+                                    dateStatusHtml = `<div style="margin-top:0.5rem; color:var(--danger); font-weight:bold; font-size:0.85rem;"><i class="fas fa-times-circle"></i> এই তারিখের সকল সিরিয়াল বুকড।</div>`;
+                                    isBookable = false;
+                                } else {
+                                    // Check if doctor sits on this weekday
+                                    const [year, month, dayNum] = selectedDate.split('-').map(Number);
+                                    const dateObj = new Date(year, month - 1, dayNum);
+                                    const day = dateObj.getDay();
+                                    
+                                    const validDaysMap = {
+                                        'saturday': 6, 'sat': 6, 'শনি': 6,
+                                        'sunday': 0, 'sun': 0, 'রবি': 0,
+                                        'monday': 1, 'mon': 1, 'সোম': 1,
+                                        'tuesday': 2, 'tue': 2, 'মঙ্গল': 2,
+                                        'wednesday': 3, 'wed': 3, 'বুধ': 3,
+                                        'thursday': 4, 'thu': 4, 'বৃহস্পতি': 4,
+                                        'friday': 5, 'fri': 5, 'শুক্র': 5
+                                    };
+                                    
+                                    let daysStr = c.visiting_days.toLowerCase();
+                                    let allowed = [];
+                                    if (daysStr.includes('everyday except friday')) allowed = [0,1,2,3,4,6];
+                                    else if (daysStr.includes('everyday')) allowed = [0,1,2,3,4,5,6];
+                                    else {
+                                        for (const [key, val] of Object.entries(validDaysMap)) {
+                                            if (daysStr.includes(key) && !allowed.includes(val)) {
+                                                allowed.push(val);
+                                            }
+                                        }
+                                        if (allowed.length === 0) allowed = [0,1,2,3,4,5,6];
+                                    }
+                                    
+                                    const sits = allowed.includes(day);
+                                    if (!sits && (!override || override.booking_status !== 'Available')) {
+                                        dateStatusHtml = `<div style="margin-top:0.5rem; color:var(--danger); font-weight:bold; font-size:0.85rem;"><i class="fas fa-calendar-times"></i> এই তারিখে ডাক্তার চেম্বারে বসেন না।</div>`;
+                                        isBookable = false;
+                                    } else {
+                                        dateStatusHtml = `<div style="margin-top:0.5rem; color:var(--accent); font-weight:bold; font-size:0.85rem;"><i class="fas fa-check-circle"></i> এই তারিখে চেম্বারে রোগী দেখা হবে।</div>`;
+                                    }
+                                }
+                            }
+                        } else {
+                            // General today status
+                            if (c.booking_status === 'Full') {
+                                dateStatusHtml = `<div style="margin-top:0.5rem; color:var(--danger); font-weight:bold; font-size:0.85rem;"><i class="fas fa-times-circle"></i> আজকের সিরিয়াল খালি নেই। অন্য দিনের সিরিয়াল নিন।</div>`;
+                                isBookable = false;
+                            }
+                        }
+
+                        let buttonHtml = '';
+                        if (isBookable) {
+                            buttonHtml = `<button class="btn-book" onclick="bookAppointment(${doc.id}, ${c.id}, '${selectedDate}')" style="margin-top:0.5rem; padding:0.4rem 0.8rem; font-size:0.9rem;">সিরিয়াল বুক করুন (৳${doc.fee})</button>`;
+                        } else {
+                            buttonHtml = `<button class="btn-book" onclick="bookAppointment(${doc.id}, ${c.id}, '')" style="margin-top:0.5rem; padding:0.4rem 0.8rem; font-size:0.9rem; background:var(--text-muted);">অন্য দিনের জন্য বুক করুন</button>`;
+                        }
+
+                        chambersHtml += `
+                            <div style="margin-bottom:0.8rem; background:rgba(0,0,0,0.02); padding:0.5rem; border-radius:0.3rem;">
+                                <div style="font-weight:600; color:var(--primary-dark);"><i class="fas fa-clinic-medical"></i> ${highlightedClinicName}</div>
+                                <div style="font-size:0.85rem; color:var(--text-muted);"><i class="fas fa-map-marker-alt"></i> ${c.location}</div>
+                                <div style="font-size:0.85rem; color:var(--text-muted);"><i class="far fa-calendar-alt"></i> ${c.visiting_days}</div>
+                                <div style="font-size:0.85rem; color:var(--text-muted);"><i class="far fa-clock"></i> ${formatBanglaTime(c.start_time)} - ${formatBanglaTime(c.end_time)}</div>
+                                ${dateStatusHtml}
+                                ${buttonHtml}
+                            </div>
+                        `;
+                    });
+                } else {
+                    chambersHtml = '<p class="text-muted" style="font-size:0.9rem; margin-top:0.5rem;">কোনো চেম্বার যুক্ত করা হয়নি।</p>';
+                }
+
+                grid.innerHTML += `
+                    <div class="doctor-card">
+                        <div class="card-header">
+                            <div class="avatar">${doc.name.charAt(0)}</div>
+                            <div class="doc-info">
+                                <h3>${highlightedDocName}</h3>
+                                <p style="color:var(--primary-color); font-weight:600;">${doc.specialties}</p>
+                                <p style="font-size:0.85rem;">${doc.designation || ''}</p>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div style="display:flex; justify-content:space-between; margin-bottom:0.5rem;">
+                                <span class="text-muted"><i class="fas fa-briefcase"></i> অভিজ্ঞতা: <strong>${doc.experience_years ? doc.experience_years + ' বছর' : 'অজানা'}</strong></span>
+                            </div>
+                            <div style="margin-bottom:0.5rem;">
+                                <span class="text-muted"><i class="fas fa-map-marker-alt"></i> জেলা: <strong>${doc.district}</strong></span>
+                            </div>
+                            <div style="background: rgba(37,99,235,0.05); padding: 0.5rem; border-radius: 0.5rem; border-left: 3px solid var(--primary-color);">
+                                <span style="color:var(--text-main); font-size: 0.9rem;">
+                                    <i class="fas fa-notes-medical" style="color:var(--primary-color);"></i> <strong>যেসব রোগের চিকিৎসা দেন:</strong><br>
+                                    ${doc.treated_diseases ? highlightText(doc.treated_diseases, searchName) : 'সাধারণ চিকিৎসা (উক্ত ক্যাটাগরি অনুযায়ী)'}
+                                </span>
+                            </div>
+                            <hr style="margin: 1rem 0; border:0; border-top:1px dashed var(--border);">
+                            <div class="chamber-list">
+                                <strong style="display:block; margin-bottom: 0.5rem; color:var(--text-main);">চেম্বার সমূহ:</strong>
+                                ${chambersHtml}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function checkDoctorSitsOnDate(doc, dateString) {
+            // Check if doctor is on leave
+            if (doc.leaves && doc.leaves.includes(dateString)) {
+                return false;
+            }
+
+            const [year, month, dayNum] = dateString.split('-').map(Number);
+            const dateObj = new Date(year, month - 1, dayNum);
+            const day = dateObj.getDay();
+
+            const validDaysMap = {
+                'saturday': 6, 'sat': 6, 'শনি': 6,
+                'sunday': 0, 'sun': 0, 'রবি': 0,
+                'monday': 1, 'mon': 1, 'সোম': 1,
+                'tuesday': 2, 'tue': 2, 'মঙ্গল': 2,
+                'wednesday': 3, 'wed': 3, 'বুধ': 3,
+                'thursday': 4, 'thu': 4, 'বৃহস্পতি': 4,
+                'friday': 5, 'fri': 5, 'শুক্র': 5
+            };
+
+            if (!doc.chambers || doc.chambers.length === 0) return false;
+
+            return doc.chambers.some(c => {
+                // Check overrides
+                if (doc.overrides) {
+                    const override = doc.overrides.find(o => o.chamber_id === c.id && o.override_date === dateString);
+                    if (override) {
+                        if (override.booking_status === 'Full') return false;
+                        if (override.booking_status === 'Available') return true;
+                    }
+                }
+
+                let daysStr = c.visiting_days.toLowerCase();
+                let allowed = [];
+                if (daysStr.includes('everyday except friday')) allowed = [0,1,2,3,4,6];
+                else if (daysStr.includes('everyday')) allowed = [0,1,2,3,4,5,6];
+                else {
+                    for (const [key, val] of Object.entries(validDaysMap)) {
+                        if (daysStr.includes(key) && !allowed.includes(val)) {
+                            allowed.push(val);
+                        }
+                    }
+                    if (allowed.length === 0) allowed = [0,1,2,3,4,5,6];
+                }
+
+                return allowed.includes(day);
+            });
+        }
+
+        // Apply filters locally
+        function filterDoctors() {
+            const fName = document.getElementById('filterName').value.toLowerCase();
+            const fCat = document.getElementById('filterCategory').value.toLowerCase();
+            const fDist = document.getElementById('filterDistrict').value.toLowerCase();
+            const fClinic = document.getElementById('filterClinic').value.toLowerCase();
+            const fDate = document.getElementById('filterDate').value;
+
+            const filtered = allDoctors.filter(doc => {
+                // Name match
+                const matchName = doc.name.toLowerCase().includes(fName);
+                
+                // Category match
+                const matchCat = fCat === '' || doc.specialties.toLowerCase().includes(fCat);
+                
+                // District match
+                const matchDist = fDist === '' || doc.district.toLowerCase() === fDist;
+                
+                // Clinic match
+                let matchClinic = false;
+                if (fClinic === '') {
+                    matchClinic = true;
+                } else if (doc.chambers && doc.chambers.length > 0) {
+                    matchClinic = doc.chambers.some(c => c.clinic_name.toLowerCase().includes(fClinic));
+                }
+
+                // Date match
+                let matchDate = true;
+                if (fDate) {
+                    matchDate = checkDoctorSitsOnDate(doc, fDate);
+                }
+
+                return matchName && matchCat && matchDist && matchClinic && matchDate;
+            });
+
+            renderDoctors(filtered, fName, fClinic, fDate);
+        }
+
+        function clearFilters() {
+            document.getElementById('filterName').value = '';
+            document.getElementById('filterCategory').value = '';
+            document.getElementById('filterDistrict').value = '';
+            document.getElementById('filterClinic').value = '';
+            document.getElementById('filterDate').value = '';
+            renderDoctors(allDoctors);
+        }
+
+        function bookAppointment(docId, chamberId, date = '') {
+            window.location.href = `doctor-booking.html?doc=${docId}&chamber=${chamberId}${date ? '&date=' + date : ''}`;
+        }
+
+        // Add event listeners for instant search
+        document.getElementById('filterName').addEventListener('input', filterDoctors);
+        document.getElementById('filterCategory').addEventListener('change', filterDoctors);
+        document.getElementById('filterDistrict').addEventListener('change', filterDoctors);
+        document.getElementById('filterClinic').addEventListener('input', filterDoctors);
+        document.getElementById('filterDate').addEventListener('change', filterDoctors);
+
+        async function fetchDoctorStats() {
+            try {
+                const res = await fetch('/api/public/doctor-stats');
+                const data = await res.json();
+                if (data.success) {
+                    animateCount('statDoctors', data.doctors);
+                    animateCount('statChambers', data.chambers);
+                    animateCount('statSittingToday', data.sitting_today);
+                }
+            } catch (err) {
+                console.error("Error loading doctor stats:", err);
+            }
+        }
+
+        function animateCount(id, target) {
+            const el = document.getElementById(id);
+            if (!el) return;
+            let cur = 0;
+            const step = Math.ceil(target / 30) || 1;
+            const t = setInterval(() => {
+                cur = Math.min(cur + step, target);
+                el.textContent = cur;
+                if (cur >= target) clearInterval(t);
+            }, 30);
+        }
+
+        // Load initially
+        window.onload = () => {
+            fetchAllDoctors();
+            fetchDoctorStats();
+        };
+    </script>
+</body>
+</html>

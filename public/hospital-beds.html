@@ -1,0 +1,1141 @@
+<!DOCTYPE html>
+<html lang="bn">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>হাসপাতাল বেড স্ট্যাটাস — LifeLine</title>
+    <meta name="description" content="LifeLine — কাছের হাসপাতালে ICU ও ইমার্জেন্সি বেডের লাইভ তথ্য দেখুন।">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@300;400;500;600;700&family=Inter:wght@400;600;700;800;900&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="https://api.mapbox.com/mapbox-gl-js/v3.3.0/mapbox-gl.css">
+    <style>
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        :root {
+            --blue: #1d4ed8;
+            --blue-dark: #1e3a8a;
+            --blue-light: #eff6ff;
+            --blue-glow: rgba(29, 78, 216, 0.3);
+            --red: #e11d48;
+            --red-light: #fff1f2;
+            --dark: #0f172a;
+            --gray: #64748b;
+            --border: #e2e8f0;
+            --white: #ffffff;
+            --bg: #f8fafc;
+            --green: #16a34a;
+            --green-light: #f0fdf4;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: 'Hind Siliguri', 'Inter', sans-serif;
+            background: var(--bg);
+            color: var(--dark);
+            min-height: 100vh;
+        }
+
+        /* NAV */
+        nav {
+            background: linear-gradient(135deg, #1e1b4b 0%, #1d4ed8 60%, #3b82f6 100%);
+            box-shadow: 0 4px 24px rgba(29, 78, 216, 0.4);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .nav-inner {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            height: 66px;
+        }
+
+        .nav-logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+        }
+
+        .logo-icon {
+            width: 38px;
+            height: 38px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .logo-text {
+            font-family: 'Inter', sans-serif;
+            font-size: 1.45rem;
+            font-weight: 900;
+            color: #fff;
+        }
+
+        .nav-back {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(255, 255, 255, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            color: #fff;
+            border-radius: 10px;
+            padding: 8px 16px;
+            font-size: 0.88rem;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all .2s;
+            font-family: 'Hind Siliguri', sans-serif;
+        }
+
+        .nav-back:hover {
+            background: rgba(255, 255, 255, 0.28);
+        }
+
+        /* PAGE HEADER */
+        .page-header {
+            background: linear-gradient(135deg, #1e1b4b 0%, #1d4ed8 60%, #3b82f6 100%);
+            color: #fff;
+            text-align: center;
+            padding: 48px 1.5rem 70px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .page-header::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/svg%3E");
+        }
+
+        .page-header-icon {
+            font-size: 3.5rem;
+            margin-bottom: 14px;
+            display: block;
+            position: relative;
+        }
+
+        .page-header h1 {
+            font-family: 'Hind Siliguri', sans-serif;
+            font-size: clamp(1.7rem, 4vw, 2.4rem);
+            font-weight: 700;
+            position: relative;
+        }
+
+        .page-header p {
+            font-size: 1rem;
+            opacity: .85;
+            margin-top: 10px;
+            position: relative;
+            max-width: 520px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        /* LIVE BADGE */
+        .live-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(255, 255, 255, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 100px;
+            padding: 6px 18px;
+            font-size: 0.82rem;
+            color: rgba(255, 255, 255, 0.9);
+            margin-top: 16px;
+            position: relative;
+        }
+
+        .live-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #4ade80;
+            animation: liveBlink 1.5s ease-in-out infinite;
+        }
+
+        @keyframes liveBlink {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.3;
+            }
+        }
+
+        /* MAIN GRID */
+        .main-wrap {
+            max-width: 1200px;
+            margin: 20px auto 60px;
+            padding: 0 1.5rem;
+            display: grid;
+            grid-template-columns: 380px 1fr;
+            gap: 24px;
+            align-items: start;
+        }
+
+        /* CARD */
+        .card {
+            background: var(--white);
+            border-radius: 24px;
+            box-shadow: 0 8px 40px rgba(15, 23, 42, 0.1), 0 2px 8px rgba(29, 78, 216, 0.06);
+            overflow: hidden;
+        }
+
+        .card-header {
+            padding: 20px 24px 16px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .card-icon {
+            width: 46px;
+            height: 46px;
+            border-radius: 13px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.3rem;
+            flex-shrink: 0;
+        }
+
+        .icon-blue {
+            background: var(--blue-light);
+        }
+
+        .card-title {
+            font-size: 1.08rem;
+            font-weight: 700;
+            color: var(--dark);
+        }
+
+        .card-sub {
+            font-size: 0.8rem;
+            color: var(--gray);
+            margin-top: 2px;
+        }
+
+        .card-body {
+            padding: 20px;
+        }
+
+        /* SEARCH / FILTER */
+        .search-box {
+            position: relative;
+            margin-bottom: 14px;
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 0.9rem;
+            pointer-events: none;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 11px 14px 11px 38px;
+            border: 1.5px solid var(--border);
+            border-radius: 12px;
+            font-size: 0.9rem;
+            font-family: inherit;
+            background: var(--bg);
+            color: var(--dark);
+            transition: border-color .2s, box-shadow .2s;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: var(--blue);
+            box-shadow: 0 0 0 3px rgba(29, 78, 216, 0.1);
+            background: #fff;
+        }
+
+        /* HOSPITAL LIST */
+        .hospital-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .hosp-card {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 14px 16px;
+            border-radius: 14px;
+            border: 1.5px solid var(--border);
+            background: var(--bg);
+            cursor: pointer;
+            transition: all .25s;
+        }
+
+        .hosp-card:hover {
+            border-color: #93c5fd;
+            background: var(--blue-light);
+            transform: translateX(4px);
+        }
+
+        .hosp-card.active {
+            border-color: var(--blue);
+            background: var(--blue-light);
+            box-shadow: 0 4px 14px var(--blue-glow);
+        }
+
+        .hosp-avatar {
+            width: 46px;
+            height: 46px;
+            border-radius: 12px;
+            background: var(--blue-light);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.4rem;
+            flex-shrink: 0;
+        }
+
+        .hosp-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .hosp-name {
+            font-weight: 700;
+            font-size: 0.95rem;
+            color: var(--dark);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .hosp-loc {
+            font-size: 0.8rem;
+            color: var(--gray);
+            margin-top: 2px;
+            display: flex;
+            align-items: center;
+            gap: 3px;
+        }
+
+        .hosp-beds {
+            text-align: right;
+            flex-shrink: 0;
+        }
+
+        .bed-badge {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 8px;
+            font-size: 0.78rem;
+            font-weight: 700;
+            margin-bottom: 4px;
+            display: block;
+        }
+
+        .bed-icu {
+            background: #fef2f2;
+            color: #dc2626;
+        }
+
+        .bed-em {
+            background: var(--green-light);
+            color: var(--green);
+        }
+
+        /* SKELETON */
+        .skeleton {
+            background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.4s infinite;
+            border-radius: 12px;
+            height: 72px;
+        }
+
+        @keyframes shimmer {
+            0% {
+                background-position: 200% 0;
+            }
+
+            100% {
+                background-position: -200% 0;
+            }
+        }
+
+        /* EMPTY STATE */
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--gray);
+        }
+
+        .empty-state .empty-icon {
+            font-size: 2.5rem;
+            margin-bottom: 12px;
+        }
+
+        .empty-state p {
+            font-size: 0.9rem;
+        }
+
+        /* MAP SECTION */
+        .map-card {
+            overflow: hidden;
+        }
+
+        .map-wrapper {
+            position: relative;
+            overflow: hidden;
+            width: 100%;
+        }
+
+        .map-search-wrap {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            right: 50px;
+            z-index: 10;
+        }
+
+        .map-search-input {
+            width: 100%;
+            padding: 10px 16px;
+            border-radius: 10px;
+            border: 1.5px solid #e2e8f0;
+            font-size: 0.88rem;
+            background: #fff;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.12);
+            outline: none;
+            font-family: inherit;
+        }
+
+        .map-search-results {
+            background: #fff;
+            border-radius: 10px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+            margin-top: 4px;
+            max-height: 200px;
+            overflow-y: auto;
+            display: none;
+        }
+
+        .map-search-results.show {
+            display: block;
+        }
+
+        .map-search-item {
+            padding: 9px 14px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            border-bottom: 1px solid #f1f5f9;
+            transition: background .15s;
+        }
+
+        .map-search-item:hover {
+            background: #f8fafc;
+        }
+
+        #hospitalMap {
+            width: 100%;
+            height: 520px;
+        }
+
+        .mapboxgl-ctrl-logo,
+        .mapboxgl-ctrl-attrib {
+            display: none !important;
+        }
+
+        .map-legend {
+            display: flex;
+            gap: 20px;
+            padding: 14px 20px;
+            border-top: 1px solid var(--border);
+            flex-wrap: wrap;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            font-size: 0.85rem;
+            color: var(--gray);
+        }
+
+        .legend-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        /* STATS BAR */
+        .stats-bar {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .stat-cell {
+            padding: 16px 20px;
+            text-align: center;
+            border-right: 1px solid var(--border);
+        }
+
+        .stat-cell:last-child {
+            border-right: none;
+        }
+
+        .stat-num {
+            font-family: 'Inter', sans-serif;
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: var(--blue);
+        }
+
+        .stat-label {
+            font-size: 0.78rem;
+            color: var(--gray);
+            margin-top: 2px;
+        }
+
+        /* HOSPITAL DETAIL POPUP */
+        .detail-popup {
+            position: fixed;
+            inset: 0;
+            z-index: 200;
+            background: rgba(15, 23, 42, 0.5);
+            backdrop-filter: blur(8px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1.5rem;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+        }
+
+        .detail-popup.show {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .detail-box {
+            background: #fff;
+            border-radius: 24px;
+            max-width: 480px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(15, 23, 42, 0.3);
+            transform: scale(0.92) translateY(20px);
+            transition: transform 0.3s;
+            overflow: hidden;
+        }
+
+        .detail-popup.show .detail-box {
+            transform: scale(1) translateY(0);
+        }
+
+        .detail-box-header {
+            background: linear-gradient(135deg, #1e1b4b, #1d4ed8);
+            color: #fff;
+            padding: 24px 28px;
+        }
+
+        .detail-box-header h3 {
+            font-size: 1.25rem;
+            font-weight: 700;
+        }
+
+        .detail-box-header p {
+            font-size: 0.88rem;
+            opacity: 0.8;
+            margin-top: 4px;
+        }
+
+        .detail-box-body {
+            padding: 24px 28px;
+        }
+
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .detail-row:last-child {
+            border-bottom: none;
+        }
+
+        .detail-label {
+            font-size: 0.88rem;
+            color: var(--gray);
+        }
+
+        .detail-value {
+            font-weight: 700;
+            font-size: 1rem;
+        }
+
+        .big-num {
+            font-size: 1.4rem;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .big-red {
+            color: #dc2626;
+        }
+
+        .big-green {
+            color: var(--green);
+        }
+
+        .detail-close {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #1e1b4b, #1d4ed8);
+            color: #fff;
+            border: none;
+            font-size: 0.95rem;
+            font-weight: 700;
+            font-family: inherit;
+            cursor: pointer;
+            transition: opacity .2s;
+        }
+
+        .detail-close:hover {
+            opacity: 0.85;
+        }
+
+        /* RESPONSIVE */
+        @media (max-width: 900px) {
+            .main-wrap {
+                grid-template-columns: 1fr;
+                margin-top: 20px;
+            }
+
+            #hospitalMap {
+                height: 380px;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .stats-bar {
+                grid-template-columns: 1fr 1fr;
+            }
+
+            .stat-cell:nth-child(2) {
+                border-right: none;
+            }
+
+            .stat-cell:nth-child(3) {
+                border-right: none;
+                grid-column: span 2;
+                border-top: 1px solid var(--border);
+            }
+
+            .card-body {
+                padding: 20px;
+            }
+        }
+
+        .btn-find-location {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            background: linear-gradient(135deg, var(--blue), var(--blue-dark));
+            color: #fff;
+            border: none;
+            padding: 12px;
+            border-radius: 12px;
+            font-size: 0.95rem;
+            font-weight: 700;
+            font-family: inherit;
+            cursor: pointer;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 4px 14px var(--blue-glow);
+            margin-bottom: 18px;
+        }
+
+        .btn-find-location:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px var(--blue-glow);
+            opacity: 0.95;
+        }
+
+        .btn-find-location:active {
+            transform: translateY(0);
+        }
+
+        .btn-find-location.locating {
+            background: linear-gradient(135deg, var(--gray), #475569);
+            box-shadow: none;
+            cursor: not-allowed;
+        }
+
+        .distance-badge {
+            display: inline-block;
+            background: #dbeafe;
+            color: #1e40af;
+            padding: 3px 8px;
+            border-radius: 6px;
+            font-size: 0.72rem;
+            font-weight: bold;
+            margin-top: 4px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- NAV -->
+    <nav>
+        <div class="nav-inner">
+            <a href="/" class="nav-logo">
+                <div class="logo-icon">🏥</div>
+                <span class="logo-text">LifeLine</span>
+            </a>
+            <a href="/" class="nav-back">← হোমে ফিরুন</a>
+        </div>
+    </nav>
+
+    <!-- PAGE HEADER -->
+    <div class="page-header">
+        <span class="page-header-icon">🏥</span>
+        <h1>লাইভ হাসপাতাল বেড স্ট্যাটাস</h1>
+        <p>বাংলাদেশের হাসপাতালগুলোতে ICU ও ইমার্জেন্সি বেডের বর্তমান তথ্য।</p>
+        <div class="live-badge">
+            <span class="live-dot"></span>
+            লাইভ আপডেট
+        </div>
+    </div>
+
+    <!-- MAIN GRID -->
+    <div class="main-wrap">
+
+        <!-- LEFT: HOSPITAL LIST -->
+        <div>
+            <div class="card">
+                <!-- STATS -->
+                <div class="stats-bar">
+                    <div class="stat-cell">
+                        <div class="stat-num" id="totalHospitals">—</div>
+                        <div class="stat-label">মোট হাসপাতাল</div>
+                    </div>
+                    <div class="stat-cell">
+                        <div class="stat-num" style="color:#dc2626;" id="totalIcu">—</div>
+                        <div class="stat-label">ICU বেড</div>
+                    </div>
+                    <div class="stat-cell">
+                        <div class="stat-num" style="color:var(--green);" id="totalEm">—</div>
+                        <div class="stat-label">ইমার্জেন্সি বেড</div>
+                    </div>
+                </div>
+
+                <div class="card-header">
+                    <div class="card-icon icon-blue">🏥</div>
+                    <div>
+                        <div class="card-title">হাসপাতালের তালিকা</div>
+                        <div class="card-sub">বিস্তারিত দেখতে ক্লিক করুন</div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- Search -->
+                    <div class="search-box">
+                        <span class="search-icon">🔍</span>
+                        <input type="text" id="hospSearch" class="search-input"
+                            placeholder="হাসপাতাল বা অবস্থান খুঁজুন...">
+                    </div>
+
+                    <!-- My Location Button -->
+                    <button type="button" id="btnFindLocation" class="btn-find-location">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
+                            class="lucide lucide-map-pin">
+                            <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
+                            <circle cx="12" cy="10" r="3" />
+                        </svg>
+                        আমার অবস্থান খুঁজুন
+                    </button>
+
+                    <!-- List -->
+                    <div class="hospital-list" id="hospitalList">
+                        <div class="skeleton"></div>
+                        <div class="skeleton" style="margin-top:2px;opacity:.7"></div>
+                        <div class="skeleton" style="margin-top:2px;opacity:.5"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- RIGHT: MAP -->
+        <div class="card map-card">
+            <div class="card-header">
+                <div class="card-icon icon-blue">🗺️</div>
+                <div>
+                    <div class="card-title">হাসপাতালের অবস্থান ম্যাপ</div>
+                    <div class="card-sub">মার্কারে ক্লিক করলে বিস্তারিত দেখবেন</div>
+                </div>
+            </div>
+            <div class="map-wrapper">
+                <div class="map-search-wrap">
+                    <input type="text" id="hospMapSearch" class="map-search-input" placeholder="🔍 জায়গা খুঁজুন...">
+                    <div class="map-search-results" id="hospSearchResults"></div>
+                </div>
+                <div id="hospitalMap"></div>
+            </div>
+            <div class="map-legend">
+                <div class="legend-item">
+                    <div class="legend-dot" style="background:#e11d48"></div>
+                    <span>হাসপাতাল</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-dot" style="background:#1d4ed8"></div>
+                    <span>আপনার অবস্থান</span>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- DETAIL POPUP -->
+    <div class="detail-popup" id="detailPopup">
+        <div class="detail-box">
+            <div class="detail-box-header">
+                <h3 id="detailName">হাসপাতালের নাম</h3>
+                <p id="detailLoc">📍 অবস্থান</p>
+            </div>
+            <div class="detail-box-body">
+                <div class="detail-row">
+                    <span class="detail-label">🏥 ICU বেড</span>
+                    <span class="detail-value big-num big-red" id="detailIcu">—</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">🚨 ইমার্জেন্সি বেড</span>
+                    <span class="detail-value big-num big-green" id="detailEm">—</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">📞 যোগাযোগ</span>
+                    <span class="detail-value" id="detailPhone">—</span>
+                </div>
+            </div>
+            <button class="detail-close" id="detailCloseBtn">বন্ধ করুন</button>
+        </div>
+    </div>
+
+    <script src="https://api.mapbox.com/mapbox-gl-js/v3.3.0/mapbox-gl.js"></script>
+    <script src="/js/notify.js"></script>
+    <script src="/js/mapbox-utils.js"></script>
+    <script>
+        (function () {
+            // ── Map Init ──
+            mapboxgl.accessToken = MAPBOX_TOKEN;
+            const hospMap = new mapboxgl.Map({
+                container: 'hospitalMap',
+                style: 'mapbox://styles/mapbox/streets-v12',
+                center: [90.3563, 23.685],
+                zoom: 7,
+                maxBounds: [[85, 19], [94, 28]]
+            });
+            hospMap.addControl(new mapboxgl.NavigationControl());
+            hospMap.addControl(new mapboxgl.FullscreenControl());
+
+            // ── State ──
+            let allHospitals = [];
+            let userLocation = null;
+            let userMarker = null;
+
+            // ── Popup ──
+            const popup = document.getElementById('detailPopup');
+            document.getElementById('detailCloseBtn').addEventListener('click', () => popup.classList.remove('show'));
+            popup.addEventListener('click', e => { if (e.target === popup) popup.classList.remove('show'); });
+
+            function showDetail(h) {
+                document.getElementById('detailName').textContent = h.name;
+                document.getElementById('detailLoc').textContent = '📍 ' + h.location;
+                document.getElementById('detailIcu').textContent = h.icu_available ?? '—';
+                document.getElementById('detailEm').textContent = h.emergency_bed_available ?? '—';
+                document.getElementById('detailPhone').textContent = h.phone || 'তথ্য নেই';
+                popup.classList.add('show');
+            }
+
+            // ── Haversine Formula ──
+            function getDistance(lat1, lon1, lat2, lon2) {
+                const R = 6371; // Radius of earth in km
+                const dLat = (lat2 - lat1) * Math.PI / 180;
+                const dLon = (lon2 - lon1) * Math.PI / 180;
+                const a =
+                    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+                const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+                return R * c;
+            }
+
+            // ── Render List ──
+            function renderList(hospitals) {
+                const list = document.getElementById('hospitalList');
+                list.innerHTML = '';
+                if (!hospitals.length) {
+                    list.innerHTML = '<div class="empty-state"><div class="empty-icon">🏥</div><p>কোনো হাসপাতাল পাওয়া যায়নি।</p></div>';
+                    return;
+                }
+                hospitals.forEach(h => {
+                    const div = document.createElement('div');
+                    div.className = 'hosp-card';
+                    const distanceBadge = h.distance !== undefined
+                        ? `<span class="distance-badge">📍 ${h.distance.toFixed(1)} কি.মি. দূরে</span>`
+                        : '';
+                    div.innerHTML = `
+                <div class="hosp-avatar">🏥</div>
+                <div class="hosp-info">
+                    <div class="hosp-name">${h.name}</div>
+                    <div class="hosp-loc">📍 ${h.location}</div>
+                    ${distanceBadge}
+                </div>
+                <div class="hosp-beds">
+                    <span class="bed-badge bed-icu">ICU: ${h.icu_available}</span>
+                    <span class="bed-badge bed-em">EM: ${h.emergency_bed_available}</span>
+                </div>
+            `;
+                    div.addEventListener('click', () => {
+                        document.querySelectorAll('.hosp-card').forEach(c => c.classList.remove('active'));
+                        div.classList.add('active');
+                        if (h.latitude && h.longitude) {
+                            hospMap.flyTo({ center: [parseFloat(h.longitude), parseFloat(h.latitude)], zoom: 14 });
+                        }
+                        showDetail(h);
+                    });
+                    list.appendChild(div);
+                });
+            }
+
+            // ── Add Map Marker ──
+            function addMarker(h) {
+                if (!h.latitude || !h.longitude) return;
+                const el = document.createElement('div');
+                const inner = document.createElement('div');
+                inner.innerHTML = '🏥';
+                inner.style.cssText = 'font-size:22px;cursor:pointer;filter:drop-shadow(0 2px 4px rgba(0,0,0,.3));transition:transform .2s; transform-origin: center center;';
+                inner.title = h.name;
+                inner.addEventListener('mouseenter', () => inner.style.transform = 'scale(1.3)');
+                inner.addEventListener('mouseleave', () => inner.style.transform = 'scale(1)');
+                el.appendChild(inner);
+                el.addEventListener('click', () => showDetail(h));
+                const pop = new mapboxgl.Popup({ offset: 10, closeButton: false }).setHTML(`
+            <div style="font-family:sans-serif;min-width:160px;padding:6px">
+                <strong style="color:#1d4ed8">${h.name}</strong><br>
+                <span style="color:#64748b;font-size:.83em">📍 ${h.location}</span><br>
+                <span style="color:#dc2626;font-size:.83em">ICU: ${h.icu_available}</span>&nbsp;
+                <span style="color:#16a34a;font-size:.83em">EM: ${h.emergency_bed_available}</span>
+                ${h.distance !== undefined ? `<br><span style="color:#1e40af;font-weight:bold;font-size:.83em">📍 ${h.distance.toFixed(1)} km দূরে</span>` : ''}
+            </div>`);
+                new mapboxgl.Marker({ element: el })
+                    .setLngLat([parseFloat(h.longitude), parseFloat(h.latitude)])
+                    .setPopup(pop)
+                    .addTo(hospMap);
+            }
+
+            // ── Search Filter ──
+            document.getElementById('hospSearch').addEventListener('input', function () {
+                const q = this.value.toLowerCase().trim();
+                let filtered = q
+                    ? allHospitals.filter(h => h.name.toLowerCase().includes(q) || (h.location || '').toLowerCase().includes(q))
+                    : allHospitals;
+
+                // Retain sorting if distances are present
+                if (userLocation) {
+                    filtered.sort((a, b) => (a.distance || 9999) - (b.distance || 9999));
+                }
+                renderList(filtered);
+            });
+
+            // ── Load Data ──
+            async function loadHospitals() {
+                try {
+                    const res = await fetch('/api/hospitals');
+                    const result = await res.json();
+                    if (!result.success) throw new Error();
+                    allHospitals = result.data;
+
+                    // Stats
+                    const totalIcu = allHospitals.reduce((s, h) => s + (parseInt(h.icu_available) || 0), 0);
+                    const totalEm = allHospitals.reduce((s, h) => s + (parseInt(h.emergency_bed_available) || 0), 0);
+                    document.getElementById('totalHospitals').textContent = allHospitals.length;
+                    document.getElementById('totalIcu').textContent = totalIcu;
+                    document.getElementById('totalEm').textContent = totalEm;
+
+                    renderList(allHospitals);
+                    allHospitals.forEach(h => addMarker(h));
+
+                    // Auto-trigger location search if supported on page load
+                    findMyLocation(true);
+
+                } catch (err) {
+                    document.getElementById('hospitalList').innerHTML =
+                        '<div class="empty-state"><div class="empty-icon">⚠️</div><p>ডেটা লোড করা যায়নি। পেজ রিফ্রেশ করুন।</p></div>';
+                }
+            }
+
+            // ── Locate & Sort ──
+            function processUserLocation(lat, lng, manual = false) {
+                userLocation = { lat, lng };
+
+                // Fly map to user location
+                if (manual) {
+                    hospMap.flyTo({ center: [lng, lat], zoom: 14 });
+                } else {
+                    hospMap.flyTo({ center: [lng, lat], zoom: 12 });
+                }
+
+                // Render or update user marker
+                if (userMarker) userMarker.remove();
+                const el = document.createElement('div');
+                el.style.cssText = 'width:20px;height:20px;background:#1d4ed8;border-radius:50%;border:3px solid #fff;box-shadow:0 0 0 4px rgba(29,78,216,0.3);position:relative;';
+
+                // Pulsating effect for accuracy and high-end feel
+                const pulse = document.createElement('div');
+                pulse.style.cssText = 'position:absolute;inset:-6px;border-radius:50%;border:2px solid #1d4ed8;animation:ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite;';
+                el.appendChild(pulse);
+
+                // Add CSS animation keyframe for ping dynamically if not exists
+                if (!document.getElementById('pingStyle')) {
+                    const s = document.createElement('style');
+                    s.id = 'pingStyle';
+                    s.textContent = '@keyframes ping { 75%, 100% { transform: scale(2); opacity: 0; } }';
+                    document.head.appendChild(s);
+                }
+
+                userMarker = new mapboxgl.Marker({ element: el })
+                    .setLngLat([lng, lat])
+                    .setPopup(new mapboxgl.Popup({ offset: 10 }).setHTML('<div style="font-family:sans-serif;font-weight:bold;color:#1e3a8a;padding:4px">📍 চিহ্নিত অবস্থান</div>'))
+                    .addTo(hospMap);
+
+                // Compute distances to all hospitals and sort
+                allHospitals.forEach(h => {
+                    if (h.latitude && h.longitude) {
+                        h.distance = getDistance(lat, lng, parseFloat(h.latitude), parseFloat(h.longitude));
+                    }
+                });
+
+                // Sort: nearest first
+                allHospitals.sort((a, b) => (a.distance || 9999) - (b.distance || 9999));
+
+                // Re-render
+                renderList(allHospitals);
+            }
+
+            async function findMyLocation(silent = false) {
+                const btn = document.getElementById('btnFindLocation');
+                if (btn) {
+                    btn.classList.add('locating');
+                    btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="animate-spin"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg> অবস্থান খোঁজা হচ্ছে...`;
+                }
+
+                getGeolocationWithIPFallback().then(
+                    coords => {
+                        const { lat, lng } = coords;
+                        processUserLocation(lat, lng, false);
+                        
+                        if (btn) {
+                            btn.classList.remove('locating');
+                            btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-map-pin"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg> আমার অবস্থান খুঁজুন`;
+                        }
+
+                        if (!silent) {
+                            showToast('সফলভাবে আপনার অবস্থান চিহ্নিত করা হয়েছে এবং নিকটবর্তী হাসপাতালসমূহ সাজানো হয়েছে!', 'success');
+                        }
+                    }
+                ).catch(err => {
+                    console.warn('Geolocation failed:', err);
+                    if (btn) {
+                        btn.classList.remove('locating');
+                        btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-map-pin"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg> আমার অবস্থান খুঁজুন`;
+                    }
+                    if (!silent) {
+                        showToast('আপনার অবস্থান খুঁজে পাওয়া যায়নি। অনুগ্রহ করে ম্যাপে ম্যানুয়ালি ক্লিক করুন।', 'error');
+                    }
+                });
+            }
+
+            document.getElementById('btnFindLocation').addEventListener('click', () => findMyLocation(false));
+
+            // ── Manual Location via Map Click ──
+            hospMap.on('click', async (e) => {
+                const lngLat = e.lngLat;
+                processUserLocation(lngLat.lat, lngLat.lng, true);
+            });
+
+            // ── Search functionality on Map ──
+            let st;
+            const si = document.getElementById('hospMapSearch'), sr = document.getElementById('hospSearchResults');
+            if (si) {
+                si.addEventListener('input', () => {
+                    clearTimeout(st);
+                    const q = si.value.trim();
+                    if (q.length < 2) { sr.innerHTML = ''; sr.classList.remove('show'); return; }
+                    st = setTimeout(async () => {
+                        const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(q)}.json?access_token=${MAPBOX_TOKEN}&country=BD&language=en&limit=5`;
+                        try {
+                            const res = await fetch(url), data = await res.json();
+                            sr.innerHTML = '';
+                            if (data.features && data.features.length) {
+                                data.features.forEach(f => {
+                                    const item = document.createElement('div');
+                                    item.className = 'map-search-item';
+                                    item.textContent = f.place_name;
+                                    item.addEventListener('click', async () => {
+                                        const [lng, lat] = f.center;
+                                        hospMap.flyTo({ center: [lng, lat], zoom: 14 });
+                                        processUserLocation(lat, lng, true);
+                                        si.value = f.place_name; sr.classList.remove('show');
+                                    });
+                                    sr.appendChild(item);
+                                });
+                                sr.classList.add('show');
+                            }
+                        } catch (e) {
+                            console.error('Mapbox search failed', e);
+                        }
+                    }, 350);
+                });
+                document.addEventListener('click', ev => { if (!si.contains(ev.target)) sr.classList.remove('show'); });
+            }
+
+            loadHospitals();
+        })();
+    </script>
+</body>
+
+</html>

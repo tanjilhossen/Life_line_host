@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LifeLine - Smart Prescription Generator</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #2C3E50;
+            --secondary: #3498DB;
+            --accent: #E74C3C;
+            --bg: #F0F3F4;
+            --paper: #FFFFFF;
+            --text-main: #2C3E50;
+            --text-muted: #7F8C8D;
+            --border: #BDC3C7;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }
+        
+        body { background: var(--bg); color: var(--text-main); }
+        
+        .top-bar {
+            background: var(--primary);
+            color: white;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .btn {
+            background: var(--secondary); color: white;
+            border: none; padding: 0.6rem 1.2rem;
+            border-radius: 6px; cursor: pointer;
+            font-weight: 600; font-size: 0.95rem;
+            transition: all 0.3s ease;
+            display: inline-flex; align-items: center; gap: 0.5rem;
+        }
+        .btn:hover { background: #2980B9; transform: translateY(-1px); }
+        .btn-outline { background: transparent; border: 2px solid var(--secondary); color: var(--secondary); }
+        .btn-outline:hover { background: var(--secondary); color: white; }
+        .btn-danger { background: var(--accent); }
+        .btn-danger:hover { background: #C0392B; }
+        
+        .main-container {
+            display: grid;
+            grid-template-columns: 380px 1fr;
+            gap: 2rem;
+            padding: 2rem;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        /* Tools Panel */
+        .tools-panel {
+            background: var(--paper);
+            padding: 1.5rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+            height: calc(100vh - 120px);
+            overflow-y: auto;
+        }
+        
+        .tools-panel h3 { margin-bottom: 1.2rem; color: var(--primary); border-bottom: 2px solid #ECF0F1; padding-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem; }
+        
+        .form-group { margin-bottom: 1.2rem; }
+        .form-group label { display: block; font-size: 0.85rem; font-weight: 600; color: var(--text-muted); margin-bottom: 0.4rem; }
+        .form-control {
+            width: 100%; padding: 0.6rem;
+            border: 1px solid var(--border);
+            border-radius: 6px; font-size: 0.95rem;
+            transition: border-color 0.3s;
+        }
+        .form-control:focus { border-color: var(--secondary); outline: none; }
+        
+        .suggestions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            margin-top: 8px;
+        }
+        .suggestion-chip {
+            background: #EAECEE;
+            font-size: 0.75rem;
+            padding: 4px 8px;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: 0.2s;
+            color: var(--primary);
+        }
+        .suggestion-chip:hover {
+            background: var(--secondary);
+            color: white;
+        }
+
+        .med-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-bottom: 0.5rem; }
+        
+        /* Prescription Preview Container */
+        #previewWrapper {
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+            align-items: center;
+            overflow-y: auto;
+            max-height: calc(100vh - 120px);
+            padding-bottom: 2rem;
+        }
+
+        /* Strict A4 Page styling */
+        .prescription-page {
+            background: var(--paper);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+            border-radius: 12px;
+            padding: 20mm;
+            width: 210mm;
+            height: 297mm;
+            min-height: 297mm;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            position: relative;
+            box-sizing: border-box;
+            page-break-after: always;
+        }
+
+        .rx-header {
+            display: flex; justify-content: space-between; border-bottom: 3px double var(--primary); padding-bottom: 1.5rem; margin-bottom: 1.5rem;
+        }
+        .doc-details h1 { color: var(--primary); font-size: 1.8rem; margin-bottom: 0.3rem; font-weight: 700; }
+        .doc-details p { color: var(--text-muted); font-size: 0.95rem; line-height: 1.4; }
+        .clinic-details { text-align: right; }
+        .clinic-details h2 { color: var(--secondary); font-size: 1.3rem; margin-bottom: 0.3rem; }
+        
+        .patient-info {
+            display: flex; justify-content: space-between; background: #F8F9FA; padding: 0.8rem; border-radius: 8px; margin-bottom: 1.5rem; font-size: 0.9rem; border: 1px solid #E2E8F0;
+        }
+        
+        .rx-body { display: grid; grid-template-columns: 200px 1fr; gap: 1.5rem; flex-grow: 1; overflow: hidden; }
+        .rx-body.full-width { grid-template-columns: 1fr; }
+
+        .left-col { border-right: 1px solid #ECF0F1; padding-right: 1.5rem; }
+        .left-col h4, .right-col h4 {
+            color: var(--primary); font-size: 1rem; margin-top: 1rem; margin-bottom: 0.5rem;
+            display: flex; align-items: center; gap: 0.5rem;
+            border-bottom: 1px dashed var(--border); padding-bottom: 0.3rem;
+        }
+        .left-col h4:first-child { margin-top: 0; }
+        
+        .symptoms-list, .tests-list { list-style: none; margin-bottom: 1.5rem; }
+        .symptoms-list li, .tests-list li { margin-bottom: 0.5rem; font-size: 0.85rem; font-weight: 600; display: flex; align-items: center; justify-content: space-between; }
+        .symptoms-list li::before { content: '•'; color: var(--accent); margin-right: 5px; font-weight: bold; }
+        .tests-list li::before { content: '✓'; color: var(--secondary); margin-right: 5px; font-weight: bold; }
+
+        .rx-symbol { font-size: 2.5rem; font-family: serif; color: var(--primary); font-weight: bold; margin-bottom: 0.5rem; line-height: 1; }
+        
+        .medications-container {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+        .medication-item { padding-bottom: 0.8rem; border-bottom: 1px solid #F1F5F9; position: relative; }
+        .med-name { font-weight: 700; font-size: 1.05rem; color: var(--primary); margin-bottom: 0.2rem; display: flex; align-items: center; justify-content: space-between; }
+        .med-details { color: var(--text-main); font-size: 0.9rem; display: flex; gap: 0.8rem; font-weight: 600; }
+        .med-instruction { color: var(--text-muted); font-size: 0.8rem; font-style: italic; margin-top: 0.2rem; display: flex; align-items: center; gap: 0.3rem; }
+        
+        .rx-footer {
+            margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--border);
+            display: flex; justify-content: space-between; align-items: flex-end;
+        }
+        .signature { text-align: right; }
+        .signature-line { width: 180px; border-bottom: 1.5px solid var(--primary); margin-bottom: 0.5rem; }
+        
+        .remove-btn { color: var(--accent); cursor: pointer; border: none; background: none; font-size: 0.85rem; }
+        .empty-state { text-align: center; color: var(--text-muted); font-style: italic; padding: 1rem 0; font-size: 0.85rem; }
+
+        /* Dynamic items controls */
+        .list-edit-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #F8F9FA;
+            padding: 0.4rem 0.6rem;
+            border-radius: 6px;
+            margin-bottom: 0.4rem;
+            font-size: 0.9rem;
+            border: 1px solid #E2E8F0;
+        }
+
+        /* Print Styles */
+        @media print {
+            body { background: white; margin: 0; padding: 0; }
+            .top-bar, .tools-panel { display: none !important; }
+            .main-container { display: block; padding: 0; max-width: 100%; margin: 0; }
+            #previewWrapper { gap: 0; max-height: none; overflow: visible; }
+            .prescription-page {
+                box-shadow: none;
+                border-radius: 0;
+                padding: 15mm;
+                width: 210mm;
+                height: 297mm;
+                page-break-after: always;
+            }
+            .remove-btn { display: none !important; }
+            @page {
+                size: A4;
+                margin: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="top-bar">
+        <div style="display:flex; align-items:center; gap:1rem;">
+            <i class="fas fa-file-medical-alt" style="font-size:1.5rem;"></i>
+            <h2 style="font-size:1.2rem; font-weight:600;">LifeLine Smart Prescription</h2>
+        </div>
+        <div style="display:flex; gap:1rem;">
+            <button class="btn btn-outline" style="color:white; border-color:white;" onclick="window.close()"><i class="fas fa-times"></i> Close</button>
+            <button class="btn" onclick="window.print()"><i class="fas fa-print"></i> Print Prescription</button>
+        </div>
+    </div>
+
+    <div class="main-container">
+        <!-- Editor Panel -->
+        <div class="tools-panel">
+            <h3><i class="fas fa-notes-medical"></i> Clinical Notes</h3>
+            <div class="form-group">
+                <label>Chief Complaints (C/C)</label>
+                <div style="display:flex; gap:0.5rem;">
+                    <input type="text" id="inSymptom" class="form-control" placeholder="e.g. Fever for 3 days" onkeypress="handleKeyPress(event, 'symptom')">
+                    <button class="btn" onclick="addSymptom()"><i class="fas fa-plus"></i></button>
+                </div>
+                <div class="suggestions">
+                    <span class="suggestion-chip" onclick="quickAddSymptom('Fever (জ্বর)')">Fever</span>
+                    <span class="suggestion-chip" onclick="quickAddSymptom('Cough (কাশি)')">Cough</span>
+                    <span class="suggestion-chip" onclick="quickAddSymptom('Headache (মাথাব্যথা)')">Headache</span>
+                    <span class="suggestion-chip" onclick="quickAddSymptom('Body pain (গায়ে ব্যথা)')">Body pain</span>
+                    <span class="suggestion-chip" onclick="quickAddSymptom('Vomiting (বমি)')">Vomiting</span>
+                    <span class="suggestion-chip" onclick="quickAddSymptom('Weakness (দুর্বলতা)')">Weakness</span>
+                </div>
+                <div id="editSymptomsList" style="margin-top: 10px;"></div>
+            </div>
+            
+            <div class="form-group">
+                <label>Diagnosis (রোগের ধরন)</label>
+                <input type="text" id="inDiagnosis" class="form-control" placeholder="e.g. Viral Fever" onkeyup="updateDiagnosis(this.value)">
+            </div>
+
+            <h3><i class="fas fa-pills"></i> Medications (ঔষধ)</h3>
+            <div class="form-group">
+                <label>Medicine Name</label>
+                <input type="text" id="mName" class="form-control" placeholder="e.g. Tab. Napa Extend 665mg">
+                <div class="suggestions">
+                    <span class="suggestion-chip" onclick="quickAddMedName('Tab. Napa Extend 665mg')">Napa Extend</span>
+                    <span class="suggestion-chip" onclick="quickAddMedName('Cap. Maxpro 20mg')">Maxpro 20</span>
+                    <span class="suggestion-chip" onclick="quickAddMedName('Tab. Fexo 120mg')">Fexo 120</span>
+                    <span class="suggestion-chip" onclick="quickAddMedName('Syp. Tuz 100ml')">Syp. Tuz</span>
+                    <span class="suggestion-chip" onclick="quickAddMedName('Tab. Ace 500mg')">Ace 500</span>
+                </div>
+            </div>
+            
+            <div class="med-row">
+                <div class="form-group">
+                    <label>Dosage (মাত্রা)</label>
+                    <select id="mDose" class="form-control" onchange="toggleDoseCustom(this.value)">
+                        <option value="1+0+1">1+0+1 (সকাল+রাত)</option>
+                        <option value="1+1+1">1+1+1 (সকাল+দুপুর+রাত)</option>
+                        <option value="1+0+0">1+0+0 (সকালে)</option>
+                        <option value="0+0+1">0+0+1 (রাতে)</option>
+                        <option value="0+1+0">0+1+0 (দুপুরে)</option>
+                        <option value="1+1+1+1">1+1+1+1 (৬ ঘণ্টা পর পর)</option>
+                        <option value="Custom">Custom (নিজের মত)</option>
+                    </select>
+                    <input type="text" id="mDoseCustom" class="form-control" style="margin-top:5px; display:none;" placeholder="e.g. 1+1+1+1+1">
+                </div>
+                <div class="form-group">
+                    <label>Timing (খাওয়ার সময়)</label>
+                    <select id="mTime" class="form-control">
+                        <option value="After Meal (খাবারের পর)">খাবারের পর</option>
+                        <option value="Before Meal (খাবারের আগে)">খাবারের আগে</option>
+                        <option value="Any time (যেকোনো সময়)">যেকোনো সময়</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="med-row">
+                <div class="form-group">
+                    <label>Duration (কতদিন)</label>
+                    <select id="mDur" class="form-control" onchange="toggleDurCustom(this.value)">
+                        <option value="3 Days (৩ দিন)">৩ দিন</option>
+                        <option value="5 Days (৫ দিন)">৫ দিন</option>
+                        <option value="7 Days (৭ দিন)">৭ দিন</option>
+                        <option value="10 Days (১০ দিন)">১০ দিন</option>
+                        <option value="14 Days (১৪ দিন)">১৪ দিন</option>
+                        <option value="1 Month (১ মাস)">১ মাস</option>
+                        <option value="Continuing (চলবে)">চলবে</option>
+                        <option value="Custom">Custom (নিজের মত)</option>
+                    </select>
+                    <input type="text" id="mDurCustom" class="form-control" style="margin-top:5px; display:none;" placeholder="e.g. 15 দিন">
+                </div>
+                <div class="form-group">
+                    <label>Note / নির্দেশনা</label>
+                    <input type="text" id="mNote" class="form-control" placeholder="e.g. ব্যথা হলে খাবেন">
+                </div>
+            </div>
+            
+            <button class="btn" style="width:100%; margin-bottom:2rem;" onclick="addMedicine()"><i class="fas fa-plus"></i> Add Medicine</button>
+
+            <h3><i class="fas fa-microscope"></i> Investigations (পরীক্ষাসমূহ)</h3>
+            <div class="form-group">
+                <div style="display:flex; gap:0.5rem;">
+                    <input type="text" id="inTest" class="form-control" placeholder="e.g. CBC, Dengue NS1" onkeypress="handleKeyPress(event, 'test')">
+                    <button class="btn" onclick="addTest()"><i class="fas fa-plus"></i></button>
+                </div>
+                <div class="suggestions">
+                    <span class="suggestion-chip" onclick="quickAddTest('CBC')">CBC</span>
+                    <span class="suggestion-chip" onclick="quickAddTest('Lipid Profile')">Lipid Profile</span>
+                    <span class="suggestion-chip" onclick="quickAddTest('Serum Creatinine')">Creatinine</span>
+                    <span class="suggestion-chip" onclick="quickAddTest('USG of Whole Abdomen')">USG</span>
+                    <span class="suggestion-chip" onclick="quickAddTest('ECG')">ECG</span>
+                </div>
+                <div id="editTestsList" style="margin-top: 10px;"></div>
+            </div>
+            
+            <h3><i class="fas fa-list-ul"></i> Advices (উপদেশসমূহ)</h3>
+            <div class="form-group">
+                <div style="display:flex; gap:0.5rem;">
+                    <input type="text" id="inAdvice" class="form-control" placeholder="e.g. পর্যাপ্ত বিশ্রাম নিন" onkeypress="handleKeyPress(event, 'advice')">
+                    <button class="btn" onclick="addAdvice()"><i class="fas fa-plus"></i></button>
+                </div>
+                <div class="suggestions">
+                    <span class="suggestion-chip" onclick="quickAddAdvice('পর্যাপ্ত পানি পান করুন।')">পানি পান</span>
+                    <span class="suggestion-chip" onclick="quickAddAdvice('ঠাণ্ডা খাবার ও পানীয় পরিহার করুন।')">ঠাণ্ডা পরিহার</span>
+                    <span class="suggestion-chip" onclick="quickAddAdvice('পর্যাপ্ত বিশ্রাম নিন।')">বিশ্রাম</span>
+                    <span class="suggestion-chip" onclick="quickAddAdvice('তৈলাক্ত ও মশলাযুক্ত খাবার খাবেন না।')">তেল পরিহার</span>
+                </div>
+                <div id="editAdviceList" style="margin-top: 10px;"></div>
+            </div>
+
+            <h3><i class="far fa-calendar-check"></i> Next Visit (পরবর্তী সাক্ষাৎ)</h3>
+            <div class="form-group">
+                <select id="mNextVisit" class="form-control" onchange="toggleNextVisitCustom(this.value)">
+                    <option value="">নির্বাচন করুন</option>
+                    <option value="After 7 Days (৭ দিন পর)">৭ দিন পর</option>
+                    <option value="After 15 Days (১৫ দিন পর)">১৫ দিন পর</option>
+                    <option value="After 1 Month (১ মাস পর)">১ মাস পর</option>
+                    <option value="After 2 Months (২ মাস পর)">২ মাস পর</option>
+                    <option value="Not required (প্রয়োজন নেই)">প্রয়োজন নেই</option>
+                    <option value="Custom">Custom (নিজের মত)</option>
+                </select>
+                <input type="text" id="mNextVisitCustom" class="form-control" style="margin-top:5px; display:none;" placeholder="e.g. ৫ দিন পর অথবা সমস্যা বাড়লে" onkeyup="updateNextVisit(this.value)">
+            </div>
+        </div>
+
+        <!-- Prescription Preview A4 Pages Container -->
+        <div id="previewWrapper">
+            <!-- Dynamic pages will be inserted here -->
+        </div>
+    </div>
+
+    <script>
+        let rxData = {
+            symptoms: [],
+            tests: [],
+            medications: [],
+            advice: [],
+            diagnosis: '',
+            nextVisit: ''
+        };
+
+        let docInfo = {};
+        let appInfo = {};
+
+        window.onload = () => {
+            const appId = localStorage.getItem('prescriptionAppId');
+            const appStr = localStorage.getItem('allAppointments');
+            const docStr = localStorage.getItem('doctorUser');
+            
+            if(appId && appStr && docStr) {
+                const appointments = JSON.parse(appStr);
+                docInfo = JSON.parse(docStr);
+                appInfo = appointments.find(a => a.id == appId) || {};
+                
+                if(appInfo.patient_problem) {
+                    rxData.symptoms.push(appInfo.patient_problem);
+                }
+                
+                rebuildPrescriptionPages();
+                renderEditLists();
+            }
+        };
+
+        function handleKeyPress(e, type) {
+            if (e.key === 'Enter') {
+                if (type === 'symptom') addSymptom();
+                if (type === 'test') addTest();
+                if (type === 'advice') addAdvice();
+            }
+        }
+
+        // Dropdown custom toggles
+        function toggleDoseCustom(val) {
+            document.getElementById('mDoseCustom').style.display = val === 'Custom' ? 'block' : 'none';
+        }
+        function toggleDurCustom(val) {
+            document.getElementById('mDurCustom').style.display = val === 'Custom' ? 'block' : 'none';
+        }
+        function toggleNextVisitCustom(val) {
+            const isCustom = val === 'Custom';
+            document.getElementById('mNextVisitCustom').style.display = isCustom ? 'block' : 'none';
+            if (!isCustom) {
+                rxData.nextVisit = val;
+                rebuildPrescriptionPages();
+            }
+        }
+
+        function updateNextVisit(val) {
+            rxData.nextVisit = val;
+            rebuildPrescriptionPages();
+        }
+
+        // Quick adders
+        function quickAddSymptom(name) {
+            if(!rxData.symptoms.includes(name)) {
+                rxData.symptoms.push(name);
+                rebuildPrescriptionPages();
+                renderEditLists();
+            }
+        }
+        function quickAddMedName(name) {
+            document.getElementById('mName').value = name;
+        }
+        function quickAddTest(name) {
+            if(!rxData.tests.includes(name)) {
+                rxData.tests.push(name);
+                rebuildPrescriptionPages();
+                renderEditLists();
+            }
+        }
+        function quickAddAdvice(name) {
+            if(!rxData.advice.includes(name)) {
+                rxData.advice.push(name);
+                rebuildPrescriptionPages();
+                renderEditLists();
+            }
+        }
+
+        // Add actions
+        function addSymptom() {
+            const val = document.getElementById('inSymptom').value.trim();
+            if(val) {
+                rxData.symptoms.push(val);
+                document.getElementById('inSymptom').value = '';
+                rebuildPrescriptionPages();
+                renderEditLists();
+            }
+        }
+        function removeSymptom(index) {
+            rxData.symptoms.splice(index, 1);
+            rebuildPrescriptionPages();
+            renderEditLists();
+        }
+
+        function addTest() {
+            const val = document.getElementById('inTest').value.trim();
+            if(val) {
+                rxData.tests.push(val);
+                document.getElementById('inTest').value = '';
+                rebuildPrescriptionPages();
+                renderEditLists();
+            }
+        }
+        function removeTest(index) {
+            rxData.tests.splice(index, 1);
+            rebuildPrescriptionPages();
+            renderEditLists();
+        }
+
+        function addAdvice() {
+            const val = document.getElementById('inAdvice').value.trim();
+            if(val) {
+                rxData.advice.push(val);
+                document.getElementById('inAdvice').value = '';
+                rebuildPrescriptionPages();
+                renderEditLists();
+            }
+        }
+        function removeAdvice(index) {
+            rxData.advice.splice(index, 1);
+            rebuildPrescriptionPages();
+            renderEditLists();
+        }
+
+        function updateDiagnosis(val) {
+            rxData.diagnosis = val;
+            rebuildPrescriptionPages();
+        }
+
+        function addMedicine() {
+            const name = document.getElementById('mName').value.trim();
+            if(!name) return;
+
+            let dose = document.getElementById('mDose').value;
+            if(dose === 'Custom') {
+                dose = document.getElementById('mDoseCustom').value.trim();
+            }
+
+            let duration = document.getElementById('mDur').value;
+            if(duration === 'Custom') {
+                duration = document.getElementById('mDurCustom').value.trim();
+            }
+
+            const timing = document.getElementById('mTime').value;
+            const note = document.getElementById('mNote').value.trim();
+
+            rxData.medications.push({ name, dose, duration, timing, note });
+
+            // Reset medication inputs
+            document.getElementById('mName').value = '';
+            document.getElementById('mDose').value = '1+0+1';
+            document.getElementById('mDoseCustom').value = '';
+            document.getElementById('mDoseCustom').style.display = 'none';
+            document.getElementById('mDur').value = '3 Days (৩ দিন)';
+            document.getElementById('mDurCustom').value = '';
+            document.getElementById('mDurCustom').style.display = 'none';
+            document.getElementById('mNote').value = '';
+
+            rebuildPrescriptionPages();
+        }
+
+        function removeMedicine(index) {
+            rxData.medications.splice(index, 1);
+            rebuildPrescriptionPages();
+        }
+
+        // Render helper list for dashboard view editing
+        function renderEditLists() {
+            document.getElementById('editSymptomsList').innerHTML = rxData.symptoms.map((s, i) => `
+                <div class="list-edit-item">
+                    <span>${s}</span>
+                    <button class="remove-btn" onclick="removeSymptom(${i})"><i class="fas fa-trash"></i></button>
+                </div>
+            `).join('');
+
+            document.getElementById('editTestsList').innerHTML = rxData.tests.map((t, i) => `
+                <div class="list-edit-item">
+                    <span>${t}</span>
+                    <button class="remove-btn" onclick="removeTest(${i})"><i class="fas fa-trash"></i></button>
+                </div>
+            `).join('');
+
+            document.getElementById('editAdviceList').innerHTML = rxData.advice.map((a, i) => `
+                <div class="list-edit-item">
+                    <span>${a}</span>
+                    <button class="remove-btn" onclick="removeAdvice(${i})"><i class="fas fa-trash"></i></button>
+                </div>
+            `).join('');
+        }
+
+        // Render functions for pages
+        function renderMedItemHtml(m, index) {
+            return `
+                <div class="medication-item">
+                    <div class="med-name">
+                        <span>${index}. ${m.name}</span>
+                        <button class="remove-btn" onclick="removeMedicine(${index - 1})"><i class="fas fa-times"></i></button>
+                    </div>
+                    <div class="med-details">
+                        <strong style="color:var(--secondary)">${m.dose || '-'}</strong>
+                        <span>•</span>
+                        <span>${m.duration || '-'}</span>
+                        ${m.timing ? `<span>•</span> <span>${m.timing}</span>` : ''}
+                    </div>
+                    ${m.note ? `<div class="med-instruction"><i class="far fa-sticky-note"></i> ${m.note}</div>` : ''}
+                </div>
+            `;
+        }
+
+        function renderAdviceAndFollowupHtml() {
+            let html = '';
+            if (rxData.advice && rxData.advice.length > 0) {
+                const adviceList = rxData.advice.map(a => `<li>${a}</li>`).join('');
+                html += `
+                    <div style="margin-top:1.5rem;">
+                        <h4 style="color: var(--primary); font-size: 1rem; margin-bottom: 0.5rem; border-bottom: 1px dashed var(--border); padding-bottom: 0.3rem;"><i class="fas fa-list-ul"></i> Advice / উপদেশ</h4>
+                        <ol style="margin-left: 1.2rem; font-size: 0.85rem; line-height: 1.4; color: var(--text-main); font-weight:500;">
+                            ${adviceList}
+                        </ol>
+                    </div>
+                `;
+            }
+            if (rxData.nextVisit) {
+                html += `
+                    <div style="margin-top:1.2rem; background:#F8FAFC; border:1px solid #E2E8F0; padding:0.6rem; border-radius:6px; font-size:0.9rem; font-weight:600; display:flex; align-items:center; gap:0.5rem; color:#1E293B;">
+                        <i class="far fa-calendar-check" style="color:var(--secondary);"></i>
+                        <span>পরবর্তী সাক্ষাৎ (Next Visit):</span>
+                        <span style="color:var(--accent); font-weight:700;">${rxData.nextVisit}</span>
+                    </div>
+                `;
+            }
+            return html;
+        }
+
+        // Rebuild dynamic A4 pages layout
+        function rebuildPrescriptionPages() {
+            const wrapper = document.getElementById('previewWrapper');
+            wrapper.innerHTML = ''; 
+
+            const meds = rxData.medications;
+            const medsPerPage = 5;
+            const medsPerSubsequentPage = 7;
+
+            const totalPages = meds.length <= medsPerPage ? 1 : 1 + Math.ceil((meds.length - medsPerPage) / medsPerSubsequentPage);
+
+            for (let pageNum = 1; pageNum <= totalPages; pageNum++) {
+                const pageDiv = document.createElement('div');
+                pageDiv.className = 'prescription-page';
+                
+                // Header
+                const headerHtml = `
+                    <div class="rx-header">
+                        <div class="doc-details">
+                            <h1>${docInfo.name || 'Dr. Name'}</h1>
+                            <p>${docInfo.specialties || ''}</p>
+                            <p>${docInfo.designation || ''}</p>
+                            <p><i class="fas fa-phone-alt"></i> ${docInfo.phone || ''}</p>
+                        </div>
+                        <div class="clinic-details">
+                            <h2>${appInfo.clinic_name || 'Clinic Name'}</h2>
+                            <p>${appInfo.location || ''}</p>
+                            <p style="margin-top:0.5rem; font-weight:600;">Date: <span>${appInfo.appointment_date_formatted || ''}</span></p>
+                        </div>
+                    </div>
+                `;
+                
+                // Patient Info
+                let patientInfoHtml = '';
+                if (pageNum === 1) {
+                    patientInfoHtml = `
+                        <div class="patient-info">
+                            <div><strong>Patient:</strong> <span>${appInfo.patient_name || ''}</span></div>
+                            <div><strong>Age/Sex:</strong> <span>${appInfo.patient_age || ''}Y / ${appInfo.patient_gender === 'Male' ? 'Male' : appInfo.patient_gender === 'Female' ? 'Female' : 'Other'}</span></div>
+                            <div><strong>Serial:</strong> <span># ${appInfo.serial_number || ''}</span></div>
+                            <div><strong>Diagnosis:</strong> <span>${rxData.diagnosis || '-'}</span></div>
+                        </div>
+                    `;
+                } else {
+                    patientInfoHtml = `
+                        <div style="display:flex; justify-content:space-between; font-size:0.8rem; border-bottom:1px solid #eee; padding-bottom:0.5rem; margin-bottom:1rem; color:var(--text-muted);">
+                            <span><strong>Patient:</strong> ${appInfo.patient_name || ''}</span>
+                            <span><strong>Serial:</strong> # ${appInfo.serial_number || ''}</span>
+                            <span>Page ${pageNum} of ${totalPages}</span>
+                        </div>
+                    `;
+                }
+
+                // Body
+                let bodyHtml = '';
+                if (pageNum === 1) {
+                    const symptomsHtml = rxData.symptoms.map(s => `<li><span>${s}</span></li>`).join('') || '<li class="empty-state">No complaints</li>';
+                    const testsHtml = rxData.tests.map(t => `<li><span>${t}</span></li>`).join('') || '<li class="empty-state">No tests advised</li>';
+                    
+                    const pageMeds = meds.slice(0, medsPerPage);
+                    const medsHtml = pageMeds.map((m, idx) => renderMedItemHtml(m, idx + 1)).join('') || '<div class="empty-state">No medications added</div>';
+                    
+                    let adviceAndFollowupHtml = '';
+                    if (totalPages === 1) {
+                        adviceAndFollowupHtml = renderAdviceAndFollowupHtml();
+                    }
+
+                    bodyHtml = `
+                        <div class="rx-body">
+                            <div class="left-col">
+                                <h4>C/C</h4>
+                                <ul class="symptoms-list">${symptomsHtml}</ul>
+                                <h4>Advised Tests</h4>
+                                <ul class="tests-list">${testsHtml}</ul>
+                            </div>
+                            <div class="right-col">
+                                <div class="rx-symbol">Rx</div>
+                                <div class="medications-container">${medsHtml}</div>
+                                ${adviceAndFollowupHtml}
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    const startIdx = medsPerPage + (pageNum - 2) * medsPerSubsequentPage;
+                    const endIdx = startIdx + medsPerSubsequentPage;
+                    const pageMeds = meds.slice(startIdx, endIdx);
+                    const medsHtml = pageMeds.map((m, idx) => renderMedItemHtml(m, startIdx + idx + 1)).join('');
+
+                    let adviceAndFollowupHtml = '';
+                    if (pageNum === totalPages) {
+                        adviceAndFollowupHtml = renderAdviceAndFollowupHtml();
+                    }
+
+                    bodyHtml = `
+                        <div class="rx-body full-width">
+                            <div class="right-col">
+                                <div class="rx-symbol" style="font-size:1.8rem; margin-bottom:0.5rem;">Rx (Continued)</div>
+                                <div class="medications-container">${medsHtml}</div>
+                                ${adviceAndFollowupHtml}
+                            </div>
+                        </div>
+                    `;
+                }
+
+                // Footer
+                const footerHtml = `
+                    <div class="rx-footer">
+                        <div style="font-size:0.8rem; color:var(--text-muted);">
+                            Powered by LifeLine | Page ${pageNum} of ${totalPages}
+                        </div>
+                        <div class="signature">
+                            <div class="signature-line"></div>
+                            <p style="font-weight:600; font-size:0.9rem; color:var(--primary);">Doctor's Signature</p>
+                        </div>
+                    </div>
+                `;
+
+                pageDiv.innerHTML = headerHtml + patientInfoHtml + bodyHtml + footerHtml;
+                wrapper.appendChild(pageDiv);
+            }
+        }
+    </script>
+</body>
+</html>

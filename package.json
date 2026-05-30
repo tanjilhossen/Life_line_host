@@ -1,0 +1,23 @@
+{
+  "name": "lifeline",
+  "version": "1.0.0",
+  "description": "",
+  "license": "ISC",
+  "author": "Tanjil",
+  "type": "commonjs",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "check": "node --check server.js && node --check public/js/notify.js && node --check public/js/app.js && node --check public/js/apply.js && node --check public/js/donor.js && node --check public/js/hospital.js && node --check public/js/login.js && node --check public/js/master.js && node --check public/js/root.js && node --check public/js/request-status.js",
+    "test": "npm run check"
+  },
+  "dependencies": {
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "firebase-admin": "^13.9.0",
+    "mysql2": "^3.22.3",
+    "qrcode-terminal": "^0.12.0",
+    "whatsapp-web.js": "^1.34.7"
+  }
+}

@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>রক্তের রিকোয়েস্ট ট্র্যাকিং — LifeLine</title>
+    <meta name="description" content="আপনার জরুরি রক্তের রিকোয়েস্টের লাইভ স্ট্যাটাস দেখুন। LifeLine স্বয়ংক্রিয়ভাবে নিকটতম donor খুঁজছে।">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/request-status.css">
+</head>
+<body>
+
+    <!-- ── Topbar ───────────────────────────────────────── -->
+    <nav class="topbar">
+        <a href="/" class="brand">
+            <span class="brand-mark">🩸</span>
+            <span>LifeLine</span>
+        </a>
+        <a href="/" class="home-link">+ নতুন রিকোয়েস্ট</a>
+    </nav>
+
+    <main class="shell">
+
+        <!-- ── Hero ─────────────────────────────────────── -->
+        <header class="hero-panel">
+            <div class="hero-text">
+                <p class="eyebrow">🔴 Live Blood Request Tracking</p>
+                <h1 id="pageTitle">রিকোয়েস্ট ট্র্যাকিং</h1>
+                <p id="requestMeta" class="muted">ডেটা লোড হচ্ছে...</p>
+            </div>
+            <div class="hero-right">
+                <span id="requestStatusBadge" class="badge badge-queued">Loading...</span>
+                <p id="lastUpdated" class="muted small update-time">--</p>
+            </div>
+        </header>
+
+        <!-- ── Queue Status Banner ───────────────────────── -->
+        <section class="queue-banner state-loading" id="queueBanner" aria-live="polite">
+            <div class="banner-icon" id="bannerIcon">⏳</div>
+            <div class="banner-content">
+                <div class="banner-label" id="bannerLabel">System চেক করছে...</div>
+                <div class="banner-message" id="bannerMessage">Donor queue status যাচাই হচ্ছে, অপেক্ষা করুন।</div>
+            </div>
+            <!-- Countdown timer (only visible when active) -->
+            <div class="timer-wrap hidden" id="timerWrap">
+                <div class="timer-label">সময় বাকি</div>
+                <div class="timer-value" id="timerValue">--</div>
+                <div class="timer-track"><div class="timer-bar" id="timerBar" style="width:100%"></div></div>
+            </div>
+        </section>
+
+        <!-- Terminal notice (shown when completed or exhausted) -->
+        <div class="terminal-notice hidden" id="terminalNotice"></div>
+
+        <!-- ── Summary Cards ─────────────────────────────── -->
+        <section class="summary-grid" aria-label="রিকোয়েস্ট সারসংক্ষেপ">
+            <div class="summary-card">
+                <span class="summary-label">মোট পাঠানো</span>
+                <strong class="summary-val" id="totalCount">0</strong>
+            </div>
+            <div class="summary-card card-accepted">
+                <span class="summary-label">✅ Accepted</span>
+                <strong class="summary-val" id="acceptedCount">0</strong>
+            </div>
+            <div class="summary-card card-pending">
+                <span class="summary-label">🔴 Active</span>
+                <strong class="summary-val" id="pendingCount">0</strong>
+            </div>
+            <div class="summary-card card-queued">
+                <span class="summary-label">📋 Queued</span>
+                <strong class="summary-val" id="queuedCount">0</strong>
+            </div>
+            <div class="summary-card card-rejected">
+                <span class="summary-label">❌ Rejected / No Response</span>
+                <strong class="summary-val" id="closedCount">0</strong>
+            </div>
+        </section>
+
+        <!-- ── Details Grid ──────────────────────────────── -->
+        <section class="details-grid">
+
+            <!-- Request Details -->
+            <article class="panel request-panel">
+                <div class="panel-header">
+                    <h2>রিকোয়েস্ট ডিটেইলস</h2>
+                </div>
+                <dl class="details-list" id="requestDetails">
+                    <div class="detail-row shimmer"><dt>&nbsp;</dt><dd>&nbsp;</dd></div>
+                    <div class="detail-row shimmer"><dt>&nbsp;</dt><dd>&nbsp;</dd></div>
+                    <div class="detail-row shimmer"><dt>&nbsp;</dt><dd>&nbsp;</dd></div>
+                </dl>
+            </article>
+
+            <!-- Donor Queue -->
+            <article class="panel donor-panel">
+                <div class="panel-header">
+                    <h2>Donor Queue</h2>
+                    <span class="muted small" id="donorQueueNote">নিকটতম থেকে দূরতম ক্রমে</span>
+                </div>
+                <div id="donorList" class="donor-list" aria-live="polite">
+                    <div class="loading-card"></div>
+                    <div class="loading-card"></div>
+                    <div class="loading-card"></div>
+                </div>
+            </article>
+
+        </section>
+
+    </main>
+
+    <script src="/js/request-status.js"></script>
+</body>
+</html>

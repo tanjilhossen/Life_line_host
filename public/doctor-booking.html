@@ -1,0 +1,1588 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LifeLine - Book Appointment</title>
+    <link rel="stylesheet" href="css/doctor.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <style>
+        .ssl-modal {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(6px); z-index: 1000; align-items: center; justify-content: center;
+        }
+        .ssl-container {
+            background: #fff; width: 90%; max-width: 600px; border-radius: 12px; overflow: hidden;
+            display: flex; flex-direction: column; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.15), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            position: relative; height: 550px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            flex-shrink: 0 !important;
+        }
+        .ssl-container.branded-mode {
+            width: 370px !important;
+            max-width: 370px !important;
+            height: 550px !important;
+            min-height: 550px !important;
+            border-radius: 8px !important;
+            flex-shrink: 0 !important;
+        }
+        .ssl-header {
+            background: #002b5c; padding: 15px 20px; color: #fff; display: flex; justify-content: space-between; align-items: center;
+        }
+        .ssl-body { padding: 0; display: flex; min-height: 340px; flex: 1; }
+        .ssl-sidebar { width: 160px; border-right: 1px solid #e2e8f0; background: #f8fafc; display: flex; flex-direction: column; }
+        .ssl-tab { padding: 14px 20px; cursor: pointer; color: #475569; border-bottom: 1px solid #f1f5f9; font-size: 0.9rem; font-weight: 500; transition: all 0.2s; display: flex; align-items: center; gap: 8px; }
+        .ssl-tab:hover { background: #f1f5f9; color: #0f172a; }
+        .ssl-tab.active { background: #fff; color: #002b5c; font-weight: bold; border-left: 4px solid #002b5c; }
+        .ssl-content { flex: 1; padding: 20px; display: flex; flex-direction: column; }
+        
+        .mb-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 10px; }
+        .mb-item { border: 1px solid #e2e8f0; padding: 15px 10px; text-align: center; border-radius: 8px; cursor: pointer; background: #fff; transition: all 0.2s; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 75px; }
+        .mb-item:hover { border-color: #002b5c; background: #f8fafc; transform: translateY(-2px); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
+        
+        /* Branded Gateway Logos CSS */
+        .brand-logo-mock { font-family: 'Inter', sans-serif; user-select: none; }
+        .bkash-logo-mock { color: #e2136e; font-weight: 900; font-size: 1.3rem; letter-spacing: -0.5px; }
+        .nagad-logo-mock { color: #f58220; font-weight: 900; font-style: italic; font-size: 1.35rem; }
+        .rocket-logo-mock { color: #8c1564; font-weight: 800; font-size: 1.25rem; }
+        
+        .pay-form { display: none; flex-direction: column; gap: 15px; }
+        .pay-form input { padding: 10px; border: 1px solid #ccc; border-radius: 4px; }
+        .pay-btn { background: #002b5c; color: #fff; padding: 12px; text-align: center; border-radius: 6px; cursor: pointer; border: none; font-size: 16px; font-weight: 600; transition: background 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px; }
+        .pay-btn:hover { background: #001f44; }
+        
+        /* Loading Overlay inside SSL */
+        .ssl-loading { display: none; flex-direction: column; align-items: center; justify-content: center; flex: 1; min-height: 250px; background: rgba(255,255,255,0.9); z-index: 10; }
+        .spinner { border: 4px solid rgba(0, 43, 92, 0.1); width: 45px; height: 45px; border-radius: 50%; border-left-color: #002b5c; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* Branded Overlay Screens */
+        .branded-gateway-overlay {
+            position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            background: #fff; z-index: 1020; display: flex; flex-direction: column;
+            animation: fadeIn 0.2s ease-out;
+        }
+        .brand-loading-overlay {
+            display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            z-index: 1030; align-items: center; justify-content: center; flex-direction: column;
+            animation: fadeIn 0.15s ease-out;
+        }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        
+        /* bKash Styles */
+        .bkash-frame { background: #e2136e; width: 100%; height: 100%; display: flex; flex-direction: column; justify-content: space-between; color: #fff; position: relative; }
+        .bkash-header-bar { background: #e2136e; display: flex; justify-content: space-between; align-items: center; padding: 12px 20px; border-bottom: 1.5px solid #d12053; }
+        .bkash-logo-svg { height: 28px; width: 80px; }
+        .bkash-merchant-info { text-align: right; }
+        .bkash-merchant-label { font-size: 0.72rem; opacity: 0.85; }
+        .bkash-amount-label { font-size: 1.05rem; font-weight: bold; }
+        .bkash-body-content { padding: 12px 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; flex: 1; background: #e2136e; min-height: 0; overflow-y: auto; }
+        .bkash-avatar-row { margin-bottom: 8px; }
+        .bkash-bird-logo { width: 44px; height: 44px; background: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(0,0,0,0.15); }
+        .bkash-step { background: #fff; color: #334155; padding: 12px 18px; border-radius: 4px; width: 100%; max-width: 330px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.25); text-align: center; display: flex; flex-direction: column; }
+        .bkash-prompt { font-size: 0.95rem; font-weight: 700; color: #1e293b; margin-top: 5px; }
+        .bkash-subprompt { font-size: 0.75rem; color: #64748b; margin-bottom: 8px; }
+        .bkash-input-row input { width: 100%; border: 1.5px solid #d1d5db; border-radius: 4px; padding: 8px; font-size: 1.15rem; color: #e2136e; font-weight: 700; text-align: center; outline: none; transition: border-color 0.2s; }
+        .bkash-input-row input:focus { border-color: #e2136e; }
+        .bkash-terms { font-size: 0.7rem; color: #64748b; margin-top: 8px; line-height: 1.35; }
+        .bkash-terms a { color: #e2136e; text-decoration: none; font-weight: 600; }
+        .bkash-footer-buttons { display: flex; width: 100%; height: 50px; }
+        .bkash-btn { flex: 1; border: none; font-size: 0.95rem; font-weight: 700; cursor: pointer; transition: all 0.2s ease; display: flex; align-items: center; justify-content: center; text-transform: uppercase; letter-spacing: 0.5px; }
+        .bkash-btn-close { background: #e3e4e6; color: #353535; }
+        .bkash-btn-close:hover { background: #d4d5d8; }
+        .bkash-btn-proceed { background: #e2136e; color: #fff; }
+        .bkash-btn-proceed:hover:not(:disabled) { background: #b30a5c; }
+        .bkash-btn-proceed:disabled { background: #f1f2f4; color: #b3b4b6; cursor: not-allowed; }
+        .bkash-error-msg { color: #fecaca; font-size: 0.8rem; margin-top: 10px; background: rgba(0,0,0,0.15); padding: 5px 10px; border-radius: 3px; font-weight: 600; width: 100%; max-width: 330px; box-sizing: border-box; text-align: center; }
+        .bkash-resend-row { font-size: 0.78rem; color: #64748b; margin-top: 10px; }
+        .bkash-info-msg { font-size: 0.78rem; color: #475569; margin-bottom: 10px; background: #f1f5f9; padding: 6px 10px; border-radius: 4px; border-left: 3px solid #e2136e; text-align: left; }
+        .bkash-security-note { font-size: 0.75rem; color: #64748b; margin-top: 8px; display: flex; align-items: center; justify-content: center; gap: 5px; }
+
+        /* Nagad Styles */
+        .nagad-frame { background: #f58220; width: 100%; height: 100%; display: flex; flex-direction: column; justify-content: space-between; color: #fff; position: relative; }
+        .nagad-header-bar { background: #ea580c; display: flex; justify-content: space-between; align-items: center; padding: 12px 20px; border-bottom: 1.5px solid #c2410c; }
+        .nagad-merchant-info { text-align: right; }
+        .nagad-merchant-label { font-size: 0.72rem; opacity: 0.85; }
+        .nagad-amount-label { font-size: 1.05rem; font-weight: bold; }
+        .nagad-body-content { padding: 12px 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; flex: 1; background: #f58220; min-height: 0; overflow-y: auto; }
+        .nagad-step { background: #fff; color: #334155; padding: 12px 18px; border-radius: 8px; width: 100%; max-width: 330px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.25); text-align: center; display: flex; flex-direction: column; }
+        .nagad-prompt { font-size: 0.95rem; font-weight: 700; color: #1e293b; margin-bottom: 8px; }
+        .nagad-input-row input { width: 100%; border: 1.5px solid #d1d5db; border-radius: 4px; padding: 8px; font-size: 1.15rem; color: #f58220; font-weight: 700; text-align: center; outline: none; transition: border-color 0.2s; }
+        .nagad-input-row input:focus { border-color: #f58220; }
+        .nagad-terms { font-size: 0.72rem; color: #64748b; margin-top: 8px; }
+        .nagad-footer-buttons { display: flex; width: 100%; height: 50px; }
+        .nagad-btn { flex: 1; border: none; font-size: 0.95rem; font-weight: 700; cursor: pointer; transition: all 0.2s ease; display: flex; align-items: center; justify-content: center; text-transform: uppercase; }
+        .nagad-btn-back { background: #f3f4f6; color: #4b5563; }
+        .nagad-btn-back:hover { background: #e5e7eb; }
+        .nagad-btn-proceed { background: #f58220; color: #fff; }
+        .nagad-btn-proceed:hover:not(:disabled) { background: #ea580c; }
+        .nagad-btn-proceed:disabled { background: #f3f4f6; color: #9ca3af; cursor: not-allowed; }
+        .nagad-error-msg { color: #fecaca; font-size: 0.8rem; margin-top: 10px; background: rgba(0,0,0,0.15); padding: 5px 10px; border-radius: 3px; font-weight: 600; width: 100%; max-width: 330px; box-sizing: border-box; text-align: center; }
+        .nagad-icon-circle { width: 40px; height: 40px; background: #fff8f1; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #f58220; font-size: 1.2rem; margin: 0 auto 6px; border: 2px solid #ffedd5; }
+        .nagad-resend { font-size: 0.8rem; margin-top: 6px; }
+
+        /* Rocket Styles */
+        .rocket-frame { background: #8c1564; width: 100%; height: 100%; display: flex; flex-direction: column; justify-content: space-between; color: #fff; position: relative; }
+        .rocket-header-bar { background: #701150; display: flex; justify-content: space-between; align-items: center; padding: 12px 20px; border-bottom: 1.5px solid #5c0e42; }
+        .rocket-merchant-info { text-align: right; }
+        .rocket-merchant-label { font-size: 0.72rem; opacity: 0.85; }
+        .rocket-amount-label { font-size: 1.05rem; font-weight: bold; }
+        .rocket-body-content { padding: 12px 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; flex: 1; background: #8c1564; min-height: 0; overflow-y: auto; }
+        .rocket-step { background: #fff; color: #334155; padding: 12px 18px; border-radius: 8px; width: 100%; max-width: 330px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.25); text-align: center; display: flex; flex-direction: column; }
+        .rocket-prompt { font-size: 0.95rem; font-weight: 700; color: #1e293b; margin-bottom: 8px; }
+        .rocket-input-row input { width: 100%; border: 1.5px solid #d1d5db; border-radius: 4px; padding: 8px; font-size: 1.15rem; color: #8c1564; font-weight: 700; text-align: center; outline: none; transition: border-color 0.2s; }
+        .rocket-input-row input:focus { border-color: #8c1564; }
+        .rocket-footer-buttons { display: flex; width: 100%; height: 50px; }
+        .rocket-btn { flex: 1; border: none; font-size: 0.95rem; font-weight: 700; cursor: pointer; transition: all 0.2s ease; display: flex; align-items: center; justify-content: center; text-transform: uppercase; }
+        .rocket-btn-back { background: #e5e7eb; color: #374151; }
+        .rocket-btn-back:hover { background: #d1d5db; }
+        .rocket-btn-proceed { background: #8c1564; color: #fff; }
+        .rocket-btn-proceed:hover:not(:disabled) { background: #701150; }
+        .rocket-btn-proceed:disabled { background: #f3f4f6; color: #9ca3af; cursor: not-allowed; }
+        .rocket-error-msg { color: #fecaca; font-size: 0.8rem; margin-top: 10px; background: rgba(0,0,0,0.15); padding: 5px 10px; border-radius: 3px; font-weight: 600; width: 100%; max-width: 330px; box-sizing: border-box; text-align: center; }
+        .rocket-icon-circle { width: 40px; height: 40px; background: #faf5fa; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #8c1564; font-size: 1.2rem; margin: 0 auto 6px; border: 2px solid #fae8fa; }
+        .rocket-terms { font-size: 0.72rem; color: #64748b; margin-top: 8px; }
+
+        /* Cards Payment Styles */
+        .card-form-wrapper { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px 20px; display: flex; flex-direction: column; gap: 12px; }
+        .card-input-container { display: flex; flex-direction: column; gap: 5px; }
+        .card-label { font-size: 0.78rem; font-weight: 600; color: #475569; text-transform: uppercase; letter-spacing: 0.5px; }
+        .card-input-with-logo { position: relative; display: flex; align-items: center; width: 100%; }
+        .card-input-with-logo input { width: 100%; padding: 10px 12px; padding-right: 42px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 1rem; outline: none; transition: border-color 0.2s; }
+        .card-input-with-logo input:focus { border-color: #002b5c; box-shadow: 0 0 0 3px rgba(0, 43, 92, 0.1); }
+        .card-brand-indicator { position: absolute; right: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.25rem; }
+        #sslCardsForm input[type="text"], #sslCardsForm input[type="password"] { width: 100%; padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 1rem; outline: none; transition: border-color 0.2s; }
+        #sslCardsForm input[type="text"]:focus, #sslCardsForm input[type="password"]:focus { border-color: #002b5c; }
+        .card-save-checkbox { display: flex; align-items: center; gap: 8px; font-size: 0.85rem; color: #475569; margin: 4px 0; }
+        .card-save-checkbox input { cursor: pointer; width: 16px; height: 16px; }
+        .card-save-checkbox label { cursor: pointer; }
+
+        /* Card 3D Secure Verification Styles */
+        .card-otp-frame { width: 90%; max-width: 420px; background: #fff; border-radius: 8px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.15); overflow: hidden; display: flex; flex-direction: column; animation: fadeIn 0.25s ease-out; }
+        .card-otp-header { border-bottom: 1px solid #e2e8f0; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; background: #f8fafc; }
+        #cardOtpBrandLogo { font-size: 1.25rem; font-weight: 800; font-style: italic; color: #0033a0; }
+        .card-otp-body { padding: 20px; color: #334155; }
+        .card-otp-details-table { border: 1px solid #e2e8f0; border-radius: 6px; overflow: hidden; margin-bottom: 15px; background: #f8fafc; }
+        .card-otp-detail-row { display: flex; justify-content: space-between; padding: 8px 12px; font-size: 0.82rem; border-bottom: 1px solid #e2e8f0; }
+        .card-otp-detail-row:last-child { border-bottom: none; }
+        .card-otp-detail-row span { color: #64748b; }
+        .card-otp-detail-row strong { color: #1e293b; }
+        .card-otp-footer { display: flex; justify-content: flex-end; gap: 10px; background: #f8fafc; padding: 12px 20px; border-top: 1px solid #e2e8f0; }
+        .card-otp-btn { padding: 9px 18px; border-radius: 4px; font-size: 0.9rem; font-weight: 600; cursor: pointer; border: none; transition: background 0.2s; }
+        .card-otp-btn-cancel { background: #e2e8f0; color: #475569; }
+        .card-otp-btn-cancel:hover { background: #cbd5e1; }
+        .card-otp-btn-submit { background: #0033a0; color: #fff; }
+        .card-otp-btn-submit:hover { background: #002270; }
+
+        /* Net Banking Styles */
+        .bank-item { border: 1px solid #e2e8f0; border-radius: 6px; padding: 12px; cursor: pointer; display: flex; align-items: center; gap: 12px; transition: all 0.2s; background: #fff; }
+        .bank-item:hover { border-color: #002b5c; background: #f8fafc; transform: translateY(-1px); }
+        .bank-item.selected { border-color: #002b5c; background: #f0f5ff; }
+        .bank-item span { font-size: 0.85rem; font-weight: 600; color: #334155; }
+        .bank-item i { font-size: 1.25rem; }
+
+        /* Serial Grid */
+        .serial-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(70px, 1fr)); gap: 10px; margin-top: 10px; }
+        .serial-box { border: 1px solid var(--primary-color); border-radius: 5px; text-align: center; padding: 10px 5px; cursor: pointer; transition: 0.3s; color: var(--primary-color); font-weight: bold; }
+        .serial-box:hover { background: rgba(37,99,235,0.1); }
+        .serial-box.booked { background: #fecaca; border-color: #ef4444; color: #b91c1c; cursor: not-allowed; opacity: 0.7; }
+        .serial-box.selected { background: var(--primary-color); color: #fff; }
+        .serial-time { font-size: 0.7rem; font-weight: normal; margin-top: 5px; }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="header-container">
+            <a href="doctors.html" class="logo">
+                <i class="fas fa-arrow-left"></i> LifeLine Booking
+            </a>
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="booking-container">
+            <!-- Doctor Details -->
+            <div>
+                <div class="booking-card" id="docInfoCard" style="margin-bottom: 1rem;">
+                    <h3 style="margin-bottom:1rem;">ডাক্তারের তথ্য</h3>
+                    <div id="docDetailsLoading"><i class="fas fa-spinner fa-spin"></i> লোড হচ্ছে...</div>
+                    <div id="docDetails" style="display:none;"></div>
+                </div>
+            </div>
+
+            <!-- Booking Form -->
+            <div>
+                <div class="booking-card">
+                    <h2 style="margin-bottom: 1.5rem;">রোগীর তথ্য দিন</h2>
+                    <form id="bookingForm" onsubmit="return openSSLCommerz(event)">
+                        <div class="form-group">
+                            <label>রোগীর নাম *</label>
+                            <input type="text" id="pName" class="form-control" required>
+                        </div>
+                        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:1rem;">
+                            <div class="form-group">
+                                <label>ফোন নাম্বার *</label>
+                                <input type="text" id="pPhone" class="form-control" required>
+                            </div>
+                            <div class="form-group">
+                                <label>ইমেইল (ঐচ্ছিক)</label>
+                                <input type="email" id="pEmail" class="form-control">
+                            </div>
+                        </div>
+                        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:1rem;">
+                            <div class="form-group">
+                                <label>বয়স *</label>
+                                <input type="number" id="pAge" class="form-control" required min="0" max="150">
+                            </div>
+                            <div class="form-group">
+                                <label>লিঙ্গ *</label>
+                                <select id="pGender" class="form-control" required>
+                                    <option value="">নির্বাচন করুন</option>
+                                    <option value="Male">পুরুষ</option>
+                                    <option value="Female">মহিলা</option>
+                                    <option value="Other">অন্যান্য</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>অ্যাপয়েন্টমেন্টের তারিখ * (ক্যালেন্ডার থেকে নির্বাচন করুন)</label>
+                            <input type="text" id="pDate" class="form-control" placeholder="তারিখ নির্বাচন করুন..." required style="background:#fff; cursor:pointer;">
+                        </div>
+                        
+                        <div class="form-group" id="serialSelectionGroup" style="display:none;">
+                            <label>আপনার সিরিয়াল নির্বাচন করুন *</label>
+                            <div id="serialGrid" class="serial-grid"></div>
+                            <input type="hidden" id="pSerialNumber" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label>সমস্যা সংক্ষেপে লিখুন *</label>
+                            <textarea id="pProblem" class="form-control" rows="3" required></textarea>
+                        </div>
+
+                        <div style="background-color: #fef2f2; padding: 1rem; border-radius: 0.5rem; border: 1px solid #fecaca; margin: 1.5rem 0;">
+                            <h4 style="color: #991b1b; margin-bottom: 0.5rem;"><i class="fas fa-info-circle"></i> পেমেন্ট সংক্রান্ত তথ্য</h4>
+                            <p style="font-size: 0.9rem; color: #b91c1c;">অ্যাপয়েন্টমেন্ট নিশ্চিত করতে <strong>১০০ টাকা অ্যাডভান্স</strong> প্রদান করতে হবে। আপনার মোট ফি ৳<span id="displayTotalFee"></span> এবং বাকি ৳<span id="displayDueFee"></span> চেম্বারে গিয়ে দিতে হবে।</p>
+                        </div>
+
+                        <button type="submit" class="btn-book" id="btnSubmit" disabled>১০০ টাকা পেমেন্ট করুন ও সিরিয়াল নিন</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SSL Commerz Modal (Rebranded as Tanjilcomarz) -->
+    <div class="ssl-modal" id="sslModal">
+        <div class="ssl-container">
+            <!-- Branded Overlays (bKash, Nagad, Rocket, Card OTP) -->
+            
+            <!-- bKash Overlay -->
+            <div class="branded-gateway-overlay" id="bkashOverlay" style="display: none;">
+                <div class="brand-loading-overlay" id="bkashLoading" style="background: #e2136e;">
+                    <div class="spinner" style="border-left-color: #fff; width: 50px; height: 50px; border-color: rgba(255,255,255,0.2);"></div>
+                    <p style="margin-top: 20px; font-weight: bold; color: #fff; font-size: 1.1rem; text-align: center;" id="bkashLoadingText">Processing...</p>
+                </div>
+                <div class="bkash-frame">
+                    <div class="bkash-header-bar">
+                        <div class="brand-logo-mock bkash-logo-mock">bKash</div>
+                        <div class="bkash-merchant-info">
+                            <div class="bkash-merchant-label">Merchant: LifeLine Booking</div>
+                            <div class="bkash-amount-label">BDT 100.00</div>
+                        </div>
+                    </div>
+                    <div class="bkash-body-content">
+                        <div class="bkash-avatar-row">
+                            <div class="bkash-bird-logo">
+                                <span style="color:#e2136e; font-size:1.5rem; font-weight:bold; font-family: 'Inter', sans-serif;">b</span>
+                            </div>
+                        </div>
+                        
+                        <!-- Step 1: Account -->
+                        <div class="bkash-step" id="bkashStep1">
+                            <div class="bkash-info-msg">
+                                <strong>Your Account Number</strong> will be used for verification.
+                            </div>
+                            <div class="bkash-prompt">Your bKash Account Number</div>
+                            <div class="bkash-subprompt">e.g. 017XXXXXXXX</div>
+                            <div class="bkash-input-row">
+                                <input type="text" id="bkashAccountInput" placeholder="017XXXXXXXX" maxlength="11" oninput="validateBkashAcc()">
+                            </div>
+                            <div class="bkash-terms">
+                                By clicking <strong>Proceed</strong>, you agree to the <a href="#" onclick="event.preventDefault()">Terms & Conditions</a>
+                            </div>
+                        </div>
+
+                        <!-- Step 2: OTP -->
+                        <div class="bkash-step" id="bkashStep2" style="display: none;">
+                            <div class="bkash-info-msg">
+                                An OTP has been sent to your mobile number.
+                            </div>
+                            <div class="bkash-prompt">Enter Verification Code</div>
+                            <div class="bkash-subprompt">6-Digit Code (Use 123456)</div>
+                            <div class="bkash-input-row">
+                                <input type="text" id="bkashOtpInput" placeholder="XXXXXX" maxlength="6" oninput="validateBkashOtp()">
+                            </div>
+                            <div class="bkash-resend-row">
+                                Didn't receive OTP? Resend in <span id="bkashTimer">120</span>s
+                            </div>
+                        </div>
+
+                        <!-- Step 3: PIN -->
+                        <div class="bkash-step" id="bkashStep3" style="display: none;">
+                            <div class="bkash-info-msg">
+                                Enter your 5-digit PIN for verification.
+                            </div>
+                            <div class="bkash-prompt">Enter PIN</div>
+                            <div class="bkash-subprompt">5-Digit PIN (Use 12345)</div>
+                            <div class="bkash-input-row">
+                                <input type="password" id="bkashPinInput" placeholder="XXXXX" maxlength="5" oninput="validateBkashPin()">
+                            </div>
+                            <div class="bkash-security-note">
+                                <i class="fas fa-lock"></i> Secured payment window
+                            </div>
+                        </div>
+                        
+                        <div class="bkash-error-msg" id="bkashError" style="display: none;"></div>
+                    </div>
+                    <div class="bkash-footer-buttons">
+                        <button class="bkash-btn bkash-btn-close" onclick="closeBrandedGateway('bKash')">CLOSE</button>
+                        <button class="bkash-btn bkash-btn-proceed" id="bkashProceedBtn" onclick="nextBkashStep()" disabled>PROCEED</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Nagad Overlay -->
+            <div class="branded-gateway-overlay" id="nagadOverlay" style="display: none;">
+                <div class="brand-loading-overlay" id="nagadLoading" style="background: #f58220;">
+                    <div class="spinner" style="border-left-color: #fff; width: 50px; height: 50px; border-color: rgba(255,255,255,0.2);"></div>
+                    <p style="margin-top: 20px; font-weight: bold; color: #fff; font-size: 1.1rem; text-align: center;" id="nagadLoadingText">Processing...</p>
+                </div>
+                <div class="nagad-frame">
+                    <div class="nagad-header-bar">
+                        <div class="brand-logo-mock nagad-logo-mock">nagad</div>
+                        <div class="nagad-merchant-info">
+                            <div class="nagad-merchant-label">Merchant: LifeLine Booking</div>
+                            <div class="nagad-amount-label">BDT 100.00</div>
+                        </div>
+                    </div>
+                    <div class="nagad-body-content">
+                        <!-- Step 1: Account -->
+                        <div class="nagad-step" id="nagadStep1">
+                            <div class="nagad-icon-circle"><i class="fas fa-mobile-alt"></i></div>
+                            <div class="nagad-prompt">Enter Nagad Account Number</div>
+                            <div class="nagad-input-row">
+                                <input type="text" id="nagadAccountInput" placeholder="019XXXXXXXX" maxlength="11" oninput="validateNagadAcc()">
+                            </div>
+                            <div class="nagad-terms">
+                                By proceeding, you agree to Nagad's T&C.
+                            </div>
+                        </div>
+
+                        <!-- Step 2: OTP -->
+                        <div class="nagad-step" id="nagadStep2" style="display: none;">
+                            <div class="nagad-icon-circle"><i class="fas fa-key"></i></div>
+                            <div class="nagad-prompt">Enter OTP (Use 123456)</div>
+                            <div class="nagad-input-row">
+                                <input type="text" id="nagadOtpInput" placeholder="XXXXXX" maxlength="6" oninput="validateNagadOtp()">
+                            </div>
+                            <div class="nagad-resend">
+                                Resend code in <span id="nagadTimer">120</span>s
+                            </div>
+                        </div>
+
+                        <!-- Step 3: PIN -->
+                        <div class="nagad-step" id="nagadStep3" style="display: none;">
+                            <div class="nagad-icon-circle"><i class="fas fa-lock"></i></div>
+                            <div class="nagad-prompt">Enter 4-Digit PIN (Use 1234)</div>
+                            <div class="nagad-input-row">
+                                <input type="password" id="nagadPinInput" placeholder="XXXX" maxlength="4" oninput="validateNagadPin()">
+                            </div>
+                        </div>
+                        
+                        <div class="nagad-error-msg" id="nagadError" style="display: none;"></div>
+                    </div>
+                    <div class="nagad-footer-buttons">
+                        <button class="nagad-btn nagad-btn-back" onclick="closeBrandedGateway('Nagad')">BACK</button>
+                        <button class="nagad-btn nagad-btn-proceed" id="nagadProceedBtn" onclick="nextNagadStep()" disabled>PROCEED</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Rocket Overlay -->
+            <div class="branded-gateway-overlay" id="rocketOverlay" style="display: none;">
+                <div class="brand-loading-overlay" id="rocketLoading" style="background: #8c1564;">
+                    <div class="spinner" style="border-left-color: #fff; width: 50px; height: 50px; border-color: rgba(255,255,255,0.2);"></div>
+                    <p style="margin-top: 20px; font-weight: bold; color: #fff; font-size: 1.1rem; text-align: center;" id="rocketLoadingText">Processing...</p>
+                </div>
+                <div class="rocket-frame">
+                    <div class="rocket-header-bar">
+                        <div class="brand-logo-mock rocket-logo-mock">rocket</div>
+                        <div class="rocket-merchant-info">
+                            <div class="rocket-merchant-label">Merchant: LifeLine Booking</div>
+                            <div class="rocket-amount-label">BDT 100.00</div>
+                        </div>
+                    </div>
+                    <div class="rocket-body-content">
+                        <!-- Step 1: Account -->
+                        <div class="rocket-step" id="rocketStep1">
+                            <div class="rocket-icon-circle"><i class="fas fa-mobile-alt"></i></div>
+                            <div class="rocket-prompt">Enter Rocket Account Number</div>
+                            <div class="rocket-input-row">
+                                <input type="text" id="rocketAccountInput" placeholder="018XXXXXXXX" maxlength="11" oninput="validateRocketAcc()">
+                            </div>
+                            <div class="rocket-terms">
+                                By proceeding, you agree to Rocket's T&C.
+                            </div>
+                        </div>
+
+                        <!-- Step 2: OTP -->
+                        <div class="rocket-step" id="rocketStep2" style="display: none;">
+                            <div class="rocket-icon-circle"><i class="fas fa-key"></i></div>
+                            <div class="rocket-prompt">Enter OTP (Use 123456)</div>
+                            <div class="rocket-input-row">
+                                <input type="text" id="rocketOtpInput" placeholder="XXXXXX" maxlength="6" oninput="validateRocketOtp()">
+                            </div>
+                            <div class="rocket-resend" style="font-size: 0.8rem; margin-top: 8px;">
+                                Resend code in <span id="rocketTimer">120</span>s
+                            </div>
+                        </div>
+
+                        <!-- Step 3: PIN -->
+                        <div class="rocket-step" id="rocketStep3" style="display: none;">
+                            <div class="rocket-icon-circle"><i class="fas fa-lock"></i></div>
+                            <div class="rocket-prompt">Enter 4-Digit PIN (Use 1234)</div>
+                            <div class="rocket-input-row">
+                                <input type="password" id="rocketPinInput" placeholder="XXXX" maxlength="4" oninput="validateRocketPin()">
+                            </div>
+                        </div>
+                        
+                        <div class="rocket-error-msg" id="rocketError" style="display: none;"></div>
+                    </div>
+                    <div class="rocket-footer-buttons">
+                        <button class="rocket-btn rocket-btn-back" onclick="closeBrandedGateway('Rocket')">BACK</button>
+                        <button class="rocket-btn rocket-btn-proceed" id="rocketProceedBtn" onclick="nextRocketStep()" disabled>PROCEED</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card 3D Secure Verification Overlay -->
+            <div class="branded-gateway-overlay" id="cardOtpOverlay" style="display: none; align-items: center; justify-content: center; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px);">
+                <div class="card-otp-frame">
+                    <div class="card-otp-header">
+                        <span id="cardOtpBrandLogo">Visa Secure</span>
+                        <span style="font-size:0.75rem; font-weight:bold; color:#64748b;">Tanjilcomarz Authentic</span>
+                    </div>
+                    <div class="card-otp-body">
+                        <div class="card-otp-details-table">
+                            <div class="card-otp-detail-row">
+                                <span>Merchant</span>
+                                <strong>LifeLine Booking</strong>
+                            </div>
+                            <div class="card-otp-detail-row">
+                                <span>Amount</span>
+                                <strong>BDT 100.00</strong>
+                            </div>
+                            <div class="card-otp-detail-row">
+                                <span>Card Number</span>
+                                <strong id="cardOtpMaskedNo">XXXX XXXX XXXX 9010</strong>
+                            </div>
+                        </div>
+                        
+                        <p style="font-size:0.82rem; color:#475569; margin-bottom:12px;">A one-time passcode has been sent to the mobile number registered with this card. Please enter the code below to authorize the transaction.</p>
+                        
+                        <div class="card-input-container">
+                            <label class="card-label">One-Time Password (OTP)</label>
+                            <input type="text" id="cardOtpInput" placeholder="Enter 6-Digit Code (123456)" maxlength="6" style="padding: 10px; font-size:1.1rem; text-align:center; border: 1px solid #cbd5e1; border-radius:4px; font-weight:bold; outline:none; margin-top:5px;" oninput="validateCardOtp()">
+                        </div>
+                        <p id="cardOtpError" style="color:red; font-size:0.8rem; display:none; margin-top: 8px; text-align:center;"></p>
+                    </div>
+                    <div class="card-otp-footer">
+                        <button class="card-otp-btn card-otp-btn-cancel" onclick="closeCardOtpOverlay()">Cancel</button>
+                        <button class="card-otp-btn card-otp-btn-submit" id="cardOtpSubmitBtn" onclick="submitCardOtp()" disabled>Submit</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Standard Tanjilcomarz UI -->
+            <div class="ssl-header">
+                <div style="font-size:1.2rem; font-weight:bold; font-family:'Inter',sans-serif; letter-spacing: -0.5px;">Tanjilcomarz</div>
+                <div style="font-size:0.9rem;">LifeLine Booking<br>Amount: BDT 100</div>
+                <i class="fas fa-times" style="cursor:pointer; font-size:1.2rem;" onclick="document.getElementById('sslModal').style.display='none'"></i>
+            </div>
+            
+            <div class="ssl-body" id="sslBody">
+                <div class="ssl-sidebar">
+                    <div class="ssl-tab active" id="tabMobile" onclick="switchTab('mobile')"><i class="fas fa-mobile-alt"></i> Mobile Banking</div>
+                    <div class="ssl-tab" id="tabCards" onclick="switchTab('cards')"><i class="far fa-credit-card"></i> Cards</div>
+                    <div class="ssl-tab" id="tabNet" onclick="switchTab('net')"><i class="fas fa-university"></i> Net Banking</div>
+                </div>
+                
+                <!-- Tab contents -->
+                
+                <!-- Mobile Banking Selection -->
+                <div class="ssl-content" id="sslMethods">
+                    <h3 style="margin-bottom:15px; font-size:1rem; color:#1e293b;">Select Mobile Banking</h3>
+                    <div class="mb-grid">
+                        <div class="mb-item" onclick="openBrandedGateway('bKash')">
+                            <span class="brand-logo-mock bkash-logo-mock">bKash</span>
+                        </div>
+                        <div class="mb-item" onclick="openBrandedGateway('Nagad')">
+                            <span class="brand-logo-mock nagad-logo-mock">nagad</span>
+                        </div>
+                        <div class="mb-item" onclick="openBrandedGateway('Rocket')">
+                            <span class="brand-logo-mock rocket-logo-mock">rocket</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Card Input Form -->
+                <div class="ssl-content" id="sslCardsForm" style="display: none;">
+                    <h3 style="margin-bottom:15px; font-size:1rem; color:#1e293b;">Select / Input Card Details</h3>
+                    <div class="card-form-wrapper">
+                        <div class="card-input-container">
+                            <label class="card-label">Card Number</label>
+                            <div class="card-input-with-logo">
+                                <input type="text" id="cardNoInput" placeholder="4000 1234 5678 9010" maxlength="19" oninput="formatAndDetectCard(this)">
+                                <div class="card-brand-indicator" id="cardBrandIndicator">
+                                    <i class="far fa-credit-card" style="color:#94a3b8;"></i>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                            <div class="card-input-container">
+                                <label class="card-label">Expiry Date</label>
+                                <input type="text" id="cardExpiryInput" placeholder="MM/YY" maxlength="5" oninput="formatExpiry(this)">
+                            </div>
+                            <div class="card-input-container">
+                                <label class="card-label">CVV / CVC</label>
+                                <input type="password" id="cardCvvInput" placeholder="123" maxlength="3" oninput="validateCardFields()">
+                            </div>
+                        </div>
+                        
+                        <div class="card-input-container">
+                            <label class="card-label">Cardholder Name</label>
+                            <input type="text" id="cardNameInput" placeholder="JOHN DOE" oninput="validateCardFields()">
+                        </div>
+
+                        <div class="card-save-checkbox">
+                            <input type="checkbox" id="saveCardCheck">
+                            <label for="saveCardCheck">Save card for future checkout</label>
+                        </div>
+                    </div>
+                    
+                    <p id="cardError" style="color:red; font-size:0.8rem; display:none; margin-top: 10px;"></p>
+                    <button class="pay-btn" id="cardPayBtn" style="margin-top:15px; width:100%;" onclick="processCardPayment()" disabled>Pay BDT 100</button>
+                </div>
+                
+                <!-- Net Banking Selection -->
+                <div class="ssl-content" id="sslNetForm" style="display: none;">
+                    <h3 style="margin-bottom:15px; font-size:1rem; color:#1e293b;">Select Internet Banking</h3>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom:15px;">
+                        <div class="bank-item" id="bankDBBL" onclick="selectBank(this, 'DBBL')">
+                            <i class="fas fa-university" style="color:#007a33;"></i>
+                            <span>DBBL Nexus</span>
+                        </div>
+                        <div class="bank-item" id="bankCity" onclick="selectBank(this, 'City')">
+                            <i class="fas fa-university" style="color:#1b4f72;"></i>
+                            <span>City Touch</span>
+                        </div>
+                        <div class="bank-item" id="bankAsia" onclick="selectBank(this, 'BankAsia')">
+                            <i class="fas fa-university" style="color:#c0392b;"></i>
+                            <span>Bank Asia</span>
+                        </div>
+                        <div class="bank-item" id="bankMTB" onclick="selectBank(this, 'MTB')">
+                            <i class="fas fa-university" style="color:#2980b9;"></i>
+                            <span>MTB Internet</span>
+                        </div>
+                    </div>
+                    
+                    <div id="netBankDetails" style="display:none; flex-direction:column; gap:10px; background:#f8fafc; border:1px solid #e2e8f0; padding:15px; border-radius:6px; margin-bottom:15px;">
+                        <div class="card-input-container">
+                            <label class="card-label" id="netBankUserLabel">User ID / Account Number</label>
+                            <input type="text" id="netBankUser" placeholder="Enter Bank User ID" oninput="validateNetFields()">
+                        </div>
+                        <div class="card-input-container">
+                            <label class="card-label">Internet Banking Password</label>
+                            <input type="password" id="netBankPassword" placeholder="Enter Password" oninput="validateNetFields()">
+                        </div>
+                    </div>
+                    <p id="netBankError" style="color:red; font-size:0.8rem; display:none; margin-bottom: 10px;"></p>
+                    <button class="pay-btn" id="netPayBtn" style="width:100%;" onclick="processNetPayment()" disabled>Pay BDT 100</button>
+                </div>
+
+                <!-- Generic Loading screen -->
+                <div class="ssl-content ssl-loading" id="sslLoading">
+                    <div class="spinner"></div>
+                    <p style="margin-top:15px; font-weight:bold; color:#002b5c;" id="loadingText">Processing Payment...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Receipt Modal -->
+    <div class="receipt-modal" id="receiptModal">
+        <div class="receipt-content">
+            <div class="receipt-header">
+                <i class="fas fa-check-circle" style="color:var(--accent); font-size:3rem; margin-bottom:1rem;"></i>
+                <h2>বুকিং সফল হয়েছে!</h2>
+                <p>আপনার সিরিয়াল কনফার্ম হয়েছে।</p>
+            </div>
+            <div id="receiptBody"></div>
+            <button class="btn-book" style="margin-top:2rem;" onclick="downloadPDF()"><i class="fas fa-download"></i> রশিদ ডাউনলোড করুন (PDF)</button>
+            <button class="btn-book" style="margin-top:1rem; background:var(--text-muted);" onclick="window.location.href='doctors.html'">ফিরে যান</button>
+        </div>
+    </div>
+
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const docId = urlParams.get('doc');
+        const chamberId = urlParams.get('chamber');
+        let doctorData = null;
+        let chamberData = null;
+        let receiptDataForPDF = null;
+        let selectedPayment = 'bKash';
+        let flatpickrInstance = null;
+
+        function formatBanglaTime(timeString, returnEnglishOnly = false) {
+            if(!timeString) return '';
+            const [h, m] = timeString.split(':').map(Number);
+            let period = 'AM';
+            let formattedH = h;
+            
+            if(h >= 12) {
+                period = 'PM';
+                if(h > 12) formattedH = h - 12;
+            }
+            if(h === 0) formattedH = 12;
+            
+            let enTime = `${String(formattedH).padStart(2,'0')}:${String(m).padStart(2,'0')} ${period}`;
+            if(returnEnglishOnly) return enTime;
+
+            let bContext = '';
+            if(h >= 5 && h < 12) bContext = '(সকাল)';
+            else if(h >= 12 && h < 16) bContext = '(দুপুর)';
+            else if(h >= 16 && h < 18) bContext = '(বিকাল)';
+            else if(h >= 18 && h < 20) bContext = '(সন্ধ্যা)';
+            else bContext = '(রাত)';
+            
+            return `${enTime} ${bContext}`;
+        }
+
+        const validDaysMap = {
+            'saturday': 6, 'sat': 6, 'শনি': 6,
+            'sunday': 0, 'sun': 0, 'রবি': 0,
+            'monday': 1, 'mon': 1, 'সোম': 1,
+            'tuesday': 2, 'tue': 2, 'মঙ্গল': 2,
+            'wednesday': 3, 'wed': 3, 'বুধ': 3,
+            'thursday': 4, 'thu': 4, 'বৃহস্পতি': 4,
+            'friday': 5, 'fri': 5, 'শুক্র': 5
+        };
+
+        function getChamberAllowedDays() {
+            if(!chamberData) return [];
+            let daysStr = chamberData.visiting_days.toLowerCase();
+            if(daysStr.includes('everyday except friday')) return [0,1,2,3,4,6];
+            if(daysStr.includes('everyday')) return [0,1,2,3,4,5,6];
+            
+            const allowed = [];
+            for (const [key, val] of Object.entries(validDaysMap)) {
+                if(daysStr.includes(key) && !allowed.includes(val)) {
+                    allowed.push(val);
+                }
+            }
+            return allowed.length > 0 ? allowed : [0,1,2,3,4,5,6];
+        }
+
+        function initDatePicker(fullyBookedDates = []) {
+            flatpickrInstance = flatpickr("#pDate", {
+                minDate: "today",
+                disable: [
+                    function(date) {
+                        const day = date.getDay();
+                        const allowed = getChamberAllowedDays();
+                        
+                        const y = date.getFullYear();
+                        const m = String(date.getMonth() + 1).padStart(2, '0');
+                        const d = String(date.getDate()).padStart(2, '0');
+                        const localStr = `${y}-${m}-${d}`;
+                        
+                        // Overrides check first (e.g. holiday work or manual full)
+                        const overrides = doctorData.overrides || [];
+                        const override = overrides.find(o => o.chamber_id == chamberId && o.override_date === localStr);
+                        if (override) {
+                            if (override.booking_status === 'Full') return true;
+                            if (override.booking_status === 'Available') return false;
+                        }
+                        
+                        // Check leave dates
+                        const leaveDates = doctorData.leaves || [];
+                        if(leaveDates.some(l => l === localStr)) return true;
+                        
+                        // Check normal visiting days
+                        if(!allowed.includes(day)) return true;
+                        
+                        // Check fully booked
+                        if(fullyBookedDates.includes(localStr)) return true;
+                        
+                        return false;
+                    }
+                ],
+                onChange: function(selectedDates, dateStr) {
+                    if(dateStr) {
+                        loadSerials(dateStr);
+                    }
+                }
+            });
+        }
+
+        async function loadSerials(dateStr) {
+            document.getElementById('serialSelectionGroup').style.display = 'block';
+            const grid = document.getElementById('serialGrid');
+            grid.innerHTML = 'লোড হচ্ছে...';
+            document.getElementById('pSerialNumber').value = '';
+            document.getElementById('btnSubmit').disabled = true;
+
+            try {
+                const res = await fetch('/api/patient/available-serials', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ chamberId: chamberId, appointmentDate: dateStr })
+                });
+                const data = await res.json();
+                if(data.success) {
+                    if(data.isFull) {
+                        grid.innerHTML = '<p class="text-danger">এই তারিখের জন্য সিরিয়াল বুকিং বন্ধ আছে।</p>';
+                        return;
+                    }
+                    const booked = data.booked; // array of booked serial numbers
+                    grid.innerHTML = '';
+                    const maxPatients = data.overrideMax !== null ? data.overrideMax : (chamberData.max_patients || 30);
+                    
+                    const [h, m] = chamberData.start_time.split(':').map(Number);
+                    
+                    for(let i=1; i<=maxPatients; i++) {
+                        const isBooked = booked.includes(i);
+                        const totalMin = h * 60 + m + ((i - 1) * (chamberData.time_per_patient_min || 15));
+                        const enTime = formatBanglaTime(`${Math.floor(totalMin/60)}:${totalMin%60}:00`, true);
+                        
+                        const div = document.createElement('div');
+                        div.className = 'serial-box ' + (isBooked ? 'booked' : '');
+                        div.innerHTML = `<div>#${i}</div><div class="serial-time">${enTime}</div>`;
+                        
+                        if(!isBooked) {
+                            div.onclick = function() {
+                                document.querySelectorAll('.serial-box').forEach(el => el.classList.remove('selected'));
+                                this.classList.add('selected');
+                                document.getElementById('pSerialNumber').value = i;
+                                document.getElementById('btnSubmit').disabled = false;
+                            };
+                        }
+                        grid.appendChild(div);
+                    }
+                }
+            } catch(e) {
+                grid.innerHTML = 'ত্রুটি হয়েছে। আবার চেষ্টা করুন।';
+            }
+        }
+
+        async function loadDetails() {
+            if(!docId || !chamberId) {
+                alert('Invalid parameters');
+                window.location.href = 'doctors.html';
+                return;
+            }
+
+            try {
+                const docRes = await fetch(`/api/public/doctor/${docId}`);
+                const docJson = await docRes.json();
+                const chamberRes = await fetch(`/api/public/doctor/chamber/${chamberId}`);
+                const chamberJson = await chamberRes.json();
+
+                if(!docJson.success || !chamberJson.success) throw new Error('Data not found');
+
+                doctorData = docJson.data;
+                chamberData = chamberJson.data;
+                
+                if(chamberData.booking_status === 'Full') {
+                    alert('এই চেম্বারের আজকের সিরিয়াল খালি নেই। অন্য দিনের জন্য চেষ্টা করুন।');
+                }
+
+                let fullyBookedDates = [];
+                try {
+                    const bookedRes = await fetch(`/api/public/chamber/${chamberId}/fully-booked-dates`);
+                    const bookedJson = await bookedRes.json();
+                    if(bookedJson.success) fullyBookedDates = bookedJson.dates;
+                } catch(err) {
+                    console.error("Could not fetch booked dates", err);
+                }
+
+                initDatePicker(fullyBookedDates);
+                
+                const urlDate = urlParams.get('date');
+                if (urlDate) {
+                    flatpickrInstance.setDate(urlDate, true);
+                }
+
+                document.getElementById('docDetailsLoading').style.display = 'none';
+                document.getElementById('docDetails').style.display = 'block';
+                document.getElementById('displayTotalFee').innerText = doctorData.fee;
+                document.getElementById('displayDueFee').innerText = doctorData.fee - 100;
+                
+                document.getElementById('docDetails').innerHTML = `
+                    <h4>${doctorData.name}</h4>
+                    <p class="text-muted" style="margin-bottom:0.5rem;">${doctorData.specialties}</p>
+                    ${doctorData.treated_diseases ? `<p class="text-muted" style="font-size:0.85rem; margin-bottom:1rem;"><strong>চিকিৎসা সমূহ:</strong> ${doctorData.treated_diseases}</p>` : ''}
+                    <div style="background:var(--secondary-color); padding:1rem; border-radius:0.5rem;">
+                        <p><strong><i class="fas fa-hospital"></i> চেম্বার:</strong> ${chamberData.clinic_name}</p>
+                        <p><strong><i class="fas fa-map-marker-alt"></i> ঠিকানা:</strong> ${chamberData.location}</p>
+                        <p><strong><i class="far fa-calendar-alt"></i> দিন:</strong> ${chamberData.visiting_days}</p>
+                        <p><strong><i class="far fa-clock"></i> সময়:</strong> ${formatBanglaTime(chamberData.start_time)} - ${formatBanglaTime(chamberData.end_time)}</p>
+                        <p><strong><i class="fas fa-users"></i> রোগী দেখার ক্যাপাসিটি:</strong> ${chamberData.max_patients || 30} জন</p>
+                    </div>
+                `;
+
+            } catch(e) {
+                alert('Details not found');
+                window.location.href = 'doctors.html';
+            }
+        }
+
+        // --- TANJILCOMARZ FLOW ---
+        let activeTab = 'mobile';
+        let bKashTimerInterval = null;
+        let nagadTimerInterval = null;
+        let rocketTimerInterval = null;
+
+        function switchTab(tab) {
+            activeTab = tab;
+            // Remove active classes
+            document.querySelectorAll('.ssl-tab').forEach(el => el.classList.remove('active'));
+            // Hide all tab content
+            document.getElementById('sslMethods').style.display = 'none';
+            document.getElementById('sslCardsForm').style.display = 'none';
+            document.getElementById('sslNetForm').style.display = 'none';
+            document.getElementById('sslLoading').style.display = 'none';
+
+            // Add active class and show relevant form
+            if (tab === 'mobile') {
+                document.getElementById('tabMobile').classList.add('active');
+                document.getElementById('sslMethods').style.display = 'block';
+            } else if (tab === 'cards') {
+                document.getElementById('tabCards').classList.add('active');
+                document.getElementById('sslCardsForm').style.display = 'block';
+                validateCardFields();
+            } else if (tab === 'net') {
+                document.getElementById('tabNet').classList.add('active');
+                document.getElementById('sslNetForm').style.display = 'block';
+                validateNetFields();
+            }
+        }
+
+        function validateAndNormalizeBDPhone(phone) {
+            if (typeof phone !== 'string') return null;
+            let clean = phone.replace(/\D/g, '');
+            if (clean.startsWith('880')) {
+                clean = clean.substring(2);
+            }
+            const bdRegex = /^01[3-9]\d{8}$/;
+            return bdRegex.test(clean) ? clean : null;
+        }
+
+        function openSSLCommerz(e) {
+            e.preventDefault();
+
+            const name = document.getElementById('pName').value.trim();
+            const phone = document.getElementById('pPhone').value.trim();
+            const email = document.getElementById('pEmail').value.trim();
+            const age = document.getElementById('pAge').value.trim();
+            const gender = document.getElementById('pGender').value;
+            const problem = document.getElementById('pProblem').value.trim();
+
+            const nameRegex = /^[\u0980-\u09FFa-zA-Z\s.-]{2,50}$/;
+            if (!nameRegex.test(name)) {
+                alert('অনুগ্রহ করে একটি সঠিক নাম দিন (২-৫০ অক্ষরের মধ্যে, শুধু অক্ষর, ডট বা স্পেস)।');
+                return;
+            }
+
+            const cleanPhone = validateAndNormalizeBDPhone(phone);
+            if (!cleanPhone) {
+                alert('অনুগ্রহ করে একটি সঠিক বাংলাদেশী মোবাইল নাম্বার দিন (যেমন: 017XXXXXXXX)।');
+                return;
+            }
+
+            if (email) {
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                if (!emailRegex.test(email)) {
+                    alert('অনুগ্রহ করে একটি সঠিক ইমেইল এড্রেস দিন।');
+                    return;
+                }
+            }
+
+            const parsedAge = parseInt(age, 10);
+            if (isNaN(parsedAge) || parsedAge < 0 || parsedAge > 120) {
+                alert('অনুগ্রহ করে একটি সঠিক বয়স দিন (০ থেকে ১২০ এর মধ্যে)।');
+                return;
+            }
+
+            if (!gender) {
+                alert('অনুগ্রহ করে রোগীর লিঙ্গ নির্বাচন করুন।');
+                return;
+            }
+
+            if(!document.getElementById('pDate').value || !document.getElementById('pSerialNumber').value) {
+                alert('তারিখ এবং সিরিয়াল নির্বাচন করুন।');
+                return;
+            }
+
+            if (!problem) {
+                alert('অনুগ্রহ করে সমস্যা সংক্ষেপে লিখুন।');
+                return;
+            }
+
+            // Sync cleaned phone back to input so it's sent to backend
+            document.getElementById('pPhone').value = cleanPhone;
+            
+            // Reset branded-mode class initially
+            document.querySelector('.ssl-container').classList.remove('branded-mode');
+            
+            // Hide any open overlays
+            document.getElementById('bkashOverlay').style.display = 'none';
+            document.getElementById('nagadOverlay').style.display = 'none';
+            document.getElementById('rocketOverlay').style.display = 'none';
+            document.getElementById('cardOtpOverlay').style.display = 'none';
+            
+            // Reset tab to mobile banking initially
+            switchTab('mobile');
+            document.getElementById('sslModal').style.display = 'flex';
+        }
+
+        // Branded Overlays (bKash, Nagad, Rocket)
+        function openBrandedGateway(method) {
+            selectedPayment = method;
+            const overlayId = method.toLowerCase() + 'Overlay';
+            document.getElementById(overlayId).style.display = 'flex';
+            
+            // Toggle branded-mode to shrink the modal to vertical mobile layout
+            document.querySelector('.ssl-container').classList.add('branded-mode');
+            
+            // Reset to Step 1
+            showStep(method, 1);
+            
+            // Clear inputs and errors
+            document.getElementById(method.toLowerCase() + 'AccountInput').value = '';
+            document.getElementById(method.toLowerCase() + 'OtpInput').value = '';
+            document.getElementById(method.toLowerCase() + 'PinInput').value = '';
+            
+            const errorEl = document.getElementById(method.toLowerCase() + 'Error');
+            errorEl.style.display = 'none';
+            errorEl.innerText = '';
+            
+            // Reset proceed buttons
+            document.getElementById(method.toLowerCase() + 'ProceedBtn').disabled = true;
+            
+            // Clear any existing timers
+            clearInterval(bKashTimerInterval);
+            clearInterval(nagadTimerInterval);
+            clearInterval(rocketTimerInterval);
+        }
+
+        function closeBrandedGateway(method) {
+            const overlayId = method.toLowerCase() + 'Overlay';
+            document.getElementById(overlayId).style.display = 'none';
+            
+            // Restore normal wide layout
+            document.querySelector('.ssl-container').classList.remove('branded-mode');
+            
+            clearInterval(bKashTimerInterval);
+            clearInterval(nagadTimerInterval);
+            clearInterval(rocketTimerInterval);
+        }
+
+        function showStep(method, step) {
+            const m = method.toLowerCase();
+            document.getElementById(m + 'Step1').style.display = step === 1 ? 'block' : 'none';
+            document.getElementById(m + 'Step2').style.display = step === 2 ? 'block' : 'none';
+            document.getElementById(m + 'Step3').style.display = step === 3 ? 'block' : 'none';
+            
+            // Focus on first input of that step
+            setTimeout(() => {
+                if (step === 1) document.getElementById(m + 'AccountInput').focus();
+                else if (step === 2) document.getElementById(m + 'OtpInput').focus();
+                else if (step === 3) document.getElementById(m + 'PinInput').focus();
+            }, 100);
+        }
+
+        // Validation functions for Proceed buttons
+        function validateBkashAcc() {
+            const val = document.getElementById('bkashAccountInput').value;
+            document.getElementById('bkashProceedBtn').disabled = (val.length !== 11);
+        }
+        function validateBkashOtp() {
+            const val = document.getElementById('bkashOtpInput').value;
+            document.getElementById('bkashProceedBtn').disabled = (val.length !== 6);
+        }
+        function validateBkashPin() {
+            const val = document.getElementById('bkashPinInput').value;
+            document.getElementById('bkashProceedBtn').disabled = (val.length !== 5);
+        }
+
+        function validateNagadAcc() {
+            const val = document.getElementById('nagadAccountInput').value;
+            document.getElementById('nagadProceedBtn').disabled = (val.length !== 11);
+        }
+        function validateNagadOtp() {
+            const val = document.getElementById('nagadOtpInput').value;
+            document.getElementById('nagadProceedBtn').disabled = (val.length !== 6);
+        }
+        function validateNagadPin() {
+            const val = document.getElementById('nagadPinInput').value;
+            document.getElementById('nagadProceedBtn').disabled = (val.length !== 4);
+        }
+
+        function validateRocketAcc() {
+            const val = document.getElementById('rocketAccountInput').value;
+            document.getElementById('rocketProceedBtn').disabled = (val.length !== 11);
+        }
+        function validateRocketOtp() {
+            const val = document.getElementById('rocketOtpInput').value;
+            document.getElementById('rocketProceedBtn').disabled = (val.length !== 6);
+        }
+        function validateRocketPin() {
+            const val = document.getElementById('rocketPinInput').value;
+            document.getElementById('rocketProceedBtn').disabled = (val.length !== 4);
+        }
+
+        function getStep(method) {
+            const m = method.toLowerCase();
+            if (document.getElementById(m + 'Step1').style.display !== 'none') return 1;
+            if (document.getElementById(m + 'Step2').style.display !== 'none') return 2;
+            if (document.getElementById(m + 'Step3').style.display !== 'none') return 3;
+            return 1;
+        }
+
+        function startTimer(method) {
+            let seconds = 120;
+            const timerEl = document.getElementById(method.toLowerCase() + 'Timer');
+            if (!timerEl) return;
+            
+            timerEl.innerText = seconds;
+            const interval = setInterval(() => {
+                seconds--;
+                timerEl.innerText = seconds;
+                if (seconds <= 0) {
+                    clearInterval(interval);
+                }
+            }, 1000);
+            
+            if (method === 'bKash') bKashTimerInterval = interval;
+            else if (method === 'Nagad') nagadTimerInterval = interval;
+            else if (method === 'Rocket') rocketTimerInterval = interval;
+        }
+
+        function showOverlayLoading(method, text, callback) {
+            const m = method.toLowerCase();
+            const loader = document.getElementById(m + 'Loading');
+            const textEl = document.getElementById(m + 'LoadingText');
+            if (loader && textEl) {
+                textEl.innerText = text;
+                loader.style.display = 'flex';
+            }
+            
+            setTimeout(() => {
+                if (loader) {
+                    loader.style.display = 'none';
+                }
+                callback();
+            }, 1500);
+        }
+
+        function nextBkashStep() {
+            const step = getStep('bKash');
+            const errorEl = document.getElementById('bkashError');
+            errorEl.style.display = 'none';
+
+            if (step === 1) {
+                const acc = document.getElementById('bkashAccountInput').value;
+                if (acc !== '01700000000') {
+                    errorEl.innerText = 'Invalid Account Number. Please use 01700000000 for test.';
+                    errorEl.style.display = 'block';
+                    return;
+                }
+                showOverlayLoading('bKash', 'Sending Verification Code...', () => {
+                    showStep('bKash', 2);
+                    validateBkashOtp();
+                    startTimer('bKash');
+                });
+            } else if (step === 2) {
+                const otp = document.getElementById('bkashOtpInput').value;
+                if (otp !== '123456') {
+                    errorEl.innerText = 'Incorrect OTP. Please use 123456.';
+                    errorEl.style.display = 'block';
+                    return;
+                }
+                clearInterval(bKashTimerInterval);
+                showOverlayLoading('bKash', 'Verifying OTP...', () => {
+                    showStep('bKash', 3);
+                    validateBkashPin();
+                });
+            } else if (step === 3) {
+                const pin = document.getElementById('bkashPinInput').value;
+                if (pin !== '12345') {
+                    errorEl.innerText = 'Incorrect PIN. Please use 12345.';
+                    errorEl.style.display = 'block';
+                    return;
+                }
+                showOverlayLoading('bKash', 'Processing Payment...', () => {
+                    closeBrandedGateway('bKash');
+                    document.getElementById('sslModal').style.display = 'none';
+                    submitBooking();
+                });
+            }
+        }
+
+        function nextNagadStep() {
+            const step = getStep('Nagad');
+            const errorEl = document.getElementById('nagadError');
+            errorEl.style.display = 'none';
+
+            if (step === 1) {
+                const acc = document.getElementById('nagadAccountInput').value;
+                if (acc !== '01900000000') {
+                    errorEl.innerText = 'Invalid Nagad Number. Please use 01900000000.';
+                    errorEl.style.display = 'block';
+                    return;
+                }
+                showOverlayLoading('Nagad', 'Generating OTP...', () => {
+                    showStep('Nagad', 2);
+                    validateNagadOtp();
+                    startTimer('Nagad');
+                });
+            } else if (step === 2) {
+                const otp = document.getElementById('nagadOtpInput').value;
+                if (otp !== '123456') {
+                    errorEl.innerText = 'Incorrect OTP. Please use 123456.';
+                    errorEl.style.display = 'block';
+                    return;
+                }
+                clearInterval(nagadTimerInterval);
+                showOverlayLoading('Nagad', 'Verifying OTP...', () => {
+                    showStep('Nagad', 3);
+                    validateNagadPin();
+                });
+            } else if (step === 3) {
+                const pin = document.getElementById('nagadPinInput').value;
+                if (pin !== '1234') {
+                    errorEl.innerText = 'Incorrect PIN. Please use 1234.';
+                    errorEl.style.display = 'block';
+                    return;
+                }
+                showOverlayLoading('Nagad', 'Processing Payment...', () => {
+                    closeBrandedGateway('Nagad');
+                    document.getElementById('sslModal').style.display = 'none';
+                    submitBooking();
+                });
+            }
+        }
+
+        function nextRocketStep() {
+            const step = getStep('Rocket');
+            const errorEl = document.getElementById('rocketError');
+            errorEl.style.display = 'none';
+
+            if (step === 1) {
+                const acc = document.getElementById('rocketAccountInput').value;
+                if (acc !== '01800000000') {
+                    errorEl.innerText = 'Invalid Account. Please use 01800000000.';
+                    errorEl.style.display = 'block';
+                    return;
+                }
+                showOverlayLoading('Rocket', 'Initiating Session...', () => {
+                    showStep('Rocket', 2);
+                    validateRocketOtp();
+                    startTimer('Rocket');
+                });
+            } else if (step === 2) {
+                const otp = document.getElementById('rocketOtpInput').value;
+                if (otp !== '123456') {
+                    errorEl.innerText = 'Incorrect OTP. Please use 123456.';
+                    errorEl.style.display = 'block';
+                    return;
+                }
+                clearInterval(rocketTimerInterval);
+                showOverlayLoading('Rocket', 'Verifying...', () => {
+                    showStep('Rocket', 3);
+                    validateRocketPin();
+                });
+            } else if (step === 3) {
+                const pin = document.getElementById('rocketPinInput').value;
+                if (pin !== '1234') {
+                    errorEl.innerText = 'Incorrect PIN. Please use 1234.';
+                    errorEl.style.display = 'block';
+                    return;
+                }
+                showOverlayLoading('Rocket', 'Confirming Payment...', () => {
+                    closeBrandedGateway('Rocket');
+                    document.getElementById('sslModal').style.display = 'none';
+                    submitBooking();
+                });
+            }
+        }
+
+        // Credit Cards logic
+        function formatAndDetectCard(input) {
+            let val = input.value.replace(/\D/g, '');
+            val = val.substring(0, 16);
+            
+            const indicator = document.getElementById('cardBrandIndicator');
+            
+            if (val.startsWith('4')) {
+                indicator.innerHTML = '<i class="fab fa-cc-visa" style="color:#1a1f71; font-size:1.5rem;"></i>';
+            } else if (val.startsWith('5')) {
+                indicator.innerHTML = '<i class="fab fa-cc-mastercard" style="color:#eb001b; font-size:1.5rem;"></i>';
+            } else if (val.startsWith('3')) {
+                indicator.innerHTML = '<i class="fab fa-cc-amex" style="color:#007bc1; font-size:1.5rem;"></i>';
+            } else {
+                indicator.innerHTML = '<i class="far fa-credit-card" style="color:#94a3b8; font-size:1.25rem;"></i>';
+            }
+            
+            let formatted = '';
+            for (let i = 0; i < val.length; i++) {
+                if (i > 0 && i % 4 === 0) {
+                    formatted += ' ';
+                }
+                formatted += val[i];
+            }
+            input.value = formatted;
+            validateCardFields();
+        }
+
+        function formatExpiry(input) {
+            let val = input.value.replace(/\D/g, '');
+            val = val.substring(0, 4);
+            if (val.length > 2) {
+                input.value = val.substring(0, 2) + '/' + val.substring(2);
+            } else {
+                input.value = val;
+            }
+            validateCardFields();
+        }
+
+        function validateCardFields() {
+            const cardNo = document.getElementById('cardNoInput').value.replace(/\s/g, '');
+            const expiry = document.getElementById('cardExpiryInput').value;
+            const cvv = document.getElementById('cardCvvInput').value;
+            const name = document.getElementById('cardNameInput').value.trim();
+            const btn = document.getElementById('cardPayBtn');
+            
+            const isValid = (cardNo.length === 16 && expiry.length === 5 && cvv.length === 3 && name.length >= 3);
+            btn.disabled = !isValid;
+        }
+
+        function processCardPayment() {
+            const cardNo = document.getElementById('cardNoInput').value;
+            const cardNoRaw = cardNo.replace(/\s/g, '');
+            const expiry = document.getElementById('cardExpiryInput').value;
+            const cvv = document.getElementById('cardCvvInput').value;
+            const name = document.getElementById('cardNameInput').value.trim();
+            const errorEl = document.getElementById('cardError');
+            errorEl.style.display = 'none';
+            errorEl.innerText = '';
+            
+            let matched = false;
+            let detectedPayment = 'Card';
+            
+            if (cardNoRaw === '4000123456789010' && expiry === '12/30' && cvv === '123' && name.toLowerCase() === 'tanjil hossen') {
+                matched = true;
+                detectedPayment = 'Visa';
+            } else if (cardNoRaw === '5100123456789020' && expiry === '12/30' && cvv === '456' && name.toLowerCase() === 'tanjil hossen') {
+                matched = true;
+                detectedPayment = 'Mastercard';
+            } else if (cardNoRaw === '3700123456789030' && expiry === '12/30' && cvv === '789' && name.toLowerCase() === 'tanjil hossen') {
+                matched = true;
+                detectedPayment = 'Amex';
+            }
+            
+            if (!matched) {
+                errorEl.innerText = 'Invalid card credentials. Please check dummy_payment_credentials.txt.';
+                errorEl.style.display = 'block';
+                return;
+            }
+            
+            selectedPayment = detectedPayment;
+
+            document.getElementById('cardOtpOverlay').style.display = 'flex';
+            
+            const brandLogo = document.getElementById('cardOtpBrandLogo');
+            if (selectedPayment === 'Visa') {
+                brandLogo.innerText = 'Visa Secure';
+                brandLogo.style.color = '#1a1f71';
+            } else if (selectedPayment === 'Mastercard') {
+                brandLogo.innerText = 'Mastercard Identity Check';
+                brandLogo.style.color = '#eb001b';
+            } else if (selectedPayment === 'Amex') {
+                brandLogo.innerText = 'American Express SafeKey';
+                brandLogo.style.color = '#007bc1';
+            } else {
+                brandLogo.innerText = 'Tanjilcomarz 3D Secure';
+                brandLogo.style.color = '#002b5c';
+            }
+
+            const masked = 'XXXX XXXX XXXX ' + cardNoRaw.substring(12);
+            document.getElementById('cardOtpMaskedNo').innerText = masked;
+            
+            document.getElementById('cardOtpInput').value = '';
+            const otpErrorEl = document.getElementById('cardOtpError');
+            otpErrorEl.style.display = 'none';
+            otpErrorEl.innerText = '';
+            
+            validateCardOtp();
+            document.getElementById('cardOtpInput').focus();
+        }
+
+        function validateCardOtp() {
+            const otp = document.getElementById('cardOtpInput').value;
+            document.getElementById('cardOtpSubmitBtn').disabled = (otp.length !== 6);
+        }
+
+        function closeCardOtpOverlay() {
+            document.getElementById('cardOtpOverlay').style.display = 'none';
+        }
+
+        function submitCardOtp() {
+            const otp = document.getElementById('cardOtpInput').value;
+            const errorEl = document.getElementById('cardOtpError');
+            errorEl.style.display = 'none';
+            
+            if (otp !== '123456') {
+                errorEl.innerText = 'Incorrect OTP. Please enter 123456.';
+                errorEl.style.display = 'block';
+                return;
+            }
+
+            closeCardOtpOverlay();
+            
+            document.getElementById('sslCardsForm').style.display = 'none';
+            document.getElementById('sslMethods').style.display = 'none';
+            document.getElementById('sslNetForm').style.display = 'none';
+            
+            const loading = document.getElementById('sslLoading');
+            loading.style.display = 'flex';
+            document.getElementById('loadingText').innerText = 'Authorizing card payment...';
+            
+            setTimeout(() => {
+                document.getElementById('sslModal').style.display = 'none';
+                loading.style.display = 'none';
+                switchTab('mobile');
+                submitBooking();
+            }, 2000);
+        }
+
+        // Net Banking logic
+        function selectBank(elem, bank) {
+            document.querySelectorAll('.bank-item').forEach(el => el.classList.remove('selected'));
+            elem.classList.add('selected');
+            selectedPayment = 'Net Banking (' + bank + ')';
+            
+            const details = document.getElementById('netBankDetails');
+            details.style.display = 'flex';
+            
+            const label = document.getElementById('netBankUserLabel');
+            label.innerText = bank + ' User ID / Account Number';
+            
+            document.getElementById('netBankUser').value = '';
+            document.getElementById('netBankPassword').value = '';
+            document.getElementById('netBankError').style.display = 'none';
+            
+            validateNetFields();
+            document.getElementById('netBankUser').focus();
+        }
+
+        function validateNetFields() {
+            const user = document.getElementById('netBankUser').value.trim();
+            const pass = document.getElementById('netBankPassword').value.trim();
+            const btn = document.getElementById('netPayBtn');
+            const hasSelected = document.querySelector('.bank-item.selected') !== null;
+            
+            btn.disabled = !(hasSelected && user.length >= 4 && pass.length >= 4);
+        }
+
+        function processNetPayment() {
+            const user = document.getElementById('netBankUser').value.trim();
+            const pass = document.getElementById('netBankPassword').value.trim();
+            const errorEl = document.getElementById('netBankError');
+            errorEl.style.display = 'none';
+            errorEl.innerText = '';
+            
+            if (user !== 'tanjil123' || pass !== 'password123') {
+                errorEl.innerText = 'Invalid bank User ID or Password. Please check dummy_payment_credentials.txt.';
+                errorEl.style.display = 'block';
+                return;
+            }
+
+            document.getElementById('sslNetForm').style.display = 'none';
+            
+            const loading = document.getElementById('sslLoading');
+            loading.style.display = 'flex';
+            document.getElementById('loadingText').innerText = 'Connecting to Bank secure servers...';
+            
+            setTimeout(() => {
+                loading.style.display = 'none';
+                document.getElementById('sslModal').style.display = 'none';
+                submitBooking();
+            }, 1500);
+        }
+
+        async function submitBooking() {
+            const payload = {
+                doctorId: docId,
+                chamberId: chamberId,
+                patientName: document.getElementById('pName').value,
+                patientPhone: document.getElementById('pPhone').value,
+                patientEmail: document.getElementById('pEmail').value,
+                patientAge: document.getElementById('pAge').value,
+                patientGender: document.getElementById('pGender').value,
+                patientProblem: document.getElementById('pProblem').value,
+                appointmentDate: document.getElementById('pDate').value,
+                serialNumber: document.getElementById('pSerialNumber').value,
+                paymentMethod: selectedPayment,
+                trxId: 'TRX' + Date.now().toString().slice(-6).toUpperCase(),
+                paymentAmount: 100
+            };
+
+            const btn = document.getElementById('btnSubmit');
+            btn.innerHTML = 'প্রসেসিং...';
+            btn.disabled = true;
+
+            try {
+                const res = await fetch('/api/patient/book-appointment', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                
+                if (data.success) {
+                    showReceipt(payload, data.data);
+                } else {
+                    alert(data.message);
+                    btn.innerHTML = '১০০ টাকা পেমেন্ট করুন ও সিরিয়াল নিন';
+                    btn.disabled = false;
+                }
+            } catch(e) {
+                alert('সার্ভার এরর');
+                btn.innerHTML = '১০০ টাকা পেমেন্ট করুন ও সিরিয়াল নিন';
+                btn.disabled = false;
+            }
+        }
+
+        function showReceipt(reqData, resData) {
+            receiptDataForPDF = { ...reqData, ...resData, doctorName: doctorData.name, clinicName: chamberData.clinic_name, clinicLocation: chamberData.location, doctorPhone: doctorData.phone, totalFee: doctorData.fee };
+            
+            const bReporting = formatBanglaTime(resData.reportingTime);
+            const bAppt = formatBanglaTime(resData.appointmentTime);
+            
+            // For PDF English only
+            const enReporting = formatBanglaTime(resData.reportingTime, true);
+            const enAppt = formatBanglaTime(resData.appointmentTime, true);
+
+            receiptDataForPDF.enReporting = enReporting;
+            receiptDataForPDF.enAppt = enAppt;
+            
+            document.getElementById('receiptBody').innerHTML = `
+                <div class="receipt-row"><span>সিরিয়াল নম্বর:</span> <strong># ${resData.serialNumber}</strong></div>
+                <div class="receipt-row"><span>রোগীর নাম:</span> <strong>${reqData.patientName}</strong></div>
+                <div class="receipt-row"><span>তারিখ:</span> <strong>${resData.appointmentDate}</strong></div>
+                <div class="receipt-row"><span>রিপোর্টিং সময় (চেম্বারে উপস্থিতির সময়):</span> <strong style="color:var(--danger)">${bReporting}</strong></div>
+                <div class="receipt-row"><span>ডাক্তার দেখার সময় (আনুমানিক):</span> <strong>${bAppt}</strong></div>
+                <div class="receipt-row"><span>ডাক্তার:</span> <strong>${doctorData.name}</strong></div>
+                <div class="receipt-row"><span>চেম্বার:</span> <strong>${chamberData.clinic_name}</strong></div>
+                <div class="receipt-row"><span>যোগাযোগের নাম্বার:</span> <strong>${doctorData.phone}</strong></div>
+                <hr style="margin:1rem 0; border-top:1px dashed var(--border);">
+                <div class="receipt-row"><span>মোট ফি:</span> <strong>৳${doctorData.fee}</strong></div>
+                <div class="receipt-row"><span>অ্যাডভান্স পেমেন্ট:</span> <strong>৳100 (${reqData.paymentMethod})</strong></div>
+                <div class="receipt-row" style="color:var(--danger)"><span>বাকি টাকা (Due):</span> <strong>৳${doctorData.fee - 100}</strong></div>
+                <div class="receipt-row"><span>TrxID:</span> <strong style="font-size:0.85rem">${reqData.trxId}</strong></div>
+            `;
+            document.getElementById('receiptModal').style.display = 'flex';
+        }
+
+        function downloadPDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF({ format: 'a4' });
+            
+            doc.setFillColor(37, 99, 235);
+            doc.rect(0, 0, 210, 35, 'F');
+            
+            doc.setTextColor(255, 255, 255);
+            doc.setFontSize(24);
+            doc.setFont("helvetica", "bold");
+            doc.text('LIFELINE', 15, 22);
+            doc.setFontSize(12);
+            doc.setFont("helvetica", "normal");
+            doc.text('Doctor Appointment Receipt', 140, 22);
+
+            doc.setFillColor(245, 247, 250);
+            doc.rect(15, 45, 180, 160, 'F');
+            doc.setDrawColor(200, 200, 200);
+            doc.rect(15, 45, 180, 160, 'S');
+
+            doc.setTextColor(50, 50, 50);
+            doc.setFontSize(16);
+            doc.setFont("helvetica", "bold");
+            doc.text('Appointment Details', 25, 55);
+            doc.setLineWidth(0.5);
+            doc.line(25, 58, 185, 58);
+
+            doc.setFontSize(11);
+            doc.setFont("helvetica", "normal");
+            
+            const startY = 70;
+            const gap = 9;
+
+            doc.text(`Serial Number:`, 25, startY); doc.setFont("helvetica", "bold"); doc.text(`# ${receiptDataForPDF.serialNumber}`, 80, startY); doc.setFont("helvetica", "normal");
+            doc.text(`Patient Name:`, 25, startY + gap); doc.setFont("helvetica", "bold"); doc.text(`${receiptDataForPDF.patientName}`, 80, startY + gap); doc.setFont("helvetica", "normal");
+            doc.text(`Patient Phone:`, 25, startY + gap*2); doc.text(`${receiptDataForPDF.patientPhone}`, 80, startY + gap*2);
+            doc.text(`Appt Date:`, 25, startY + gap*3); doc.setFont("helvetica", "bold"); doc.text(`${receiptDataForPDF.appointmentDate}`, 80, startY + gap*3); doc.setFont("helvetica", "normal");
+            
+            doc.setTextColor(220, 38, 38);
+            doc.text(`Reporting Time:`, 25, startY + gap*4); doc.setFont("helvetica", "bold"); doc.text(`${receiptDataForPDF.enReporting}`, 80, startY + gap*4); doc.setFont("helvetica", "normal");
+            doc.setTextColor(50, 50, 50);
+            
+            doc.text(`Estimated Time:`, 25, startY + gap*5); doc.text(`${receiptDataForPDF.enAppt}`, 80, startY + gap*5);
+            
+            doc.line(25, startY + gap*5.5, 185, startY + gap*5.5);
+
+            doc.text(`Doctor:`, 25, startY + gap*6.5); doc.setFont("helvetica", "bold"); doc.text(`${receiptDataForPDF.doctorName}`, 80, startY + gap*6.5); doc.setFont("helvetica", "normal");
+            doc.text(`Chamber:`, 25, startY + gap*7.5); doc.text(`${receiptDataForPDF.clinicName}`, 80, startY + gap*7.5);
+            doc.text(`Location:`, 25, startY + gap*8.5); doc.text(`${receiptDataForPDF.clinicLocation}`, 80, startY + gap*8.5);
+            doc.text(`Helpline:`, 25, startY + gap*9.5); doc.text(`${receiptDataForPDF.doctorPhone}`, 80, startY + gap*9.5);
+
+            doc.line(25, startY + gap*10, 185, startY + gap*10);
+
+            doc.text(`Total Fee:`, 25, startY + gap*11); doc.text(`${receiptDataForPDF.totalFee} BDT`, 80, startY + gap*11);
+            doc.text(`Advance Paid:`, 25, startY + gap*12); doc.text(`100 BDT via ${receiptDataForPDF.paymentMethod}`, 80, startY + gap*12);
+            
+            doc.setTextColor(220, 38, 38);
+            doc.setFontSize(12); doc.setFont("helvetica", "bold");
+            doc.text(`Due Amount:`, 25, startY + gap*13.5); doc.text(`${receiptDataForPDF.totalFee - 100} BDT (Pay at chamber)`, 80, startY + gap*13.5);
+            doc.setTextColor(50, 50, 50); doc.setFontSize(11); doc.setFont("helvetica", "normal");
+            
+            doc.text(`Transaction ID:`, 25, startY + gap*14.5); doc.text(`${receiptDataForPDF.trxId}`, 80, startY + gap*14.5);
+
+            doc.setTextColor(150, 150, 150);
+            doc.setFontSize(9);
+            doc.text('Thank you for choosing LifeLine.', 105, 220, { align: 'center' });
+            doc.text('Please bring this receipt to the chamber.', 105, 225, { align: 'center' });
+            
+            doc.save(`LifeLine_Appt_${receiptDataForPDF.serialNumber}.pdf`);
+        }
+
+        window.onload = loadDetails;
+    </script>
+</body>
+</html>

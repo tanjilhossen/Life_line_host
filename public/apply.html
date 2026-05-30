@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Apply - LifeLine</title>
+    <link rel="stylesheet" href="https://api.mapbox.com/mapbox-gl-js/v3.3.0/mapbox-gl.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://api.mapbox.com/mapbox-gl-js/v3.3.0/mapbox-gl.js"></script>
+    <style>
+        .mapboxgl-ctrl-logo, .mapboxgl-ctrl-attrib { display: none !important; }
+        #locationMap { width: 100%; height: 100%; }
+        .map-search-results { background:#fff; border-radius:8px; box-shadow:0 4px 16px rgba(0,0,0,.15); margin-top:4px; max-height:180px; overflow-y:auto; display:none; position:absolute; left:0; right:0; z-index:100; }
+        .map-search-results.show { display:block; }
+        .map-search-item { padding:8px 14px; cursor:pointer; font-size:.85rem; border-bottom:1px solid #f1f5f9; }
+        .map-search-item:hover { background:#f8fafc; }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <nav class="bg-red-600 text-white p-4 shadow-lg">
+        <div class="container mx-auto flex flex-wrap gap-3 justify-between items-center">
+            <a href="/" class="text-2xl font-bold tracking-wider">🩸 LifeLine</a>
+            <a href="/login.html" class="bg-white text-red-600 px-4 py-2 rounded font-bold hover:bg-gray-200 transition">লগিন</a>
+        </div>
+    </nav>
+
+    <main class="container mx-auto p-4 py-8 max-w-6xl">
+        <section class="bg-white rounded-xl shadow-md border-t-4 border-red-500 overflow-hidden">
+            <div class="p-6 border-b">
+                <h1 class="text-3xl font-bold text-gray-900">অ্যাকাউন্টের জন্য আবেদন</h1>
+                <p class="text-gray-600 mt-2">ডোনার অথবা মেডিকেল/হসপিটাল হিসেবে আবেদন করুন। অ্যাডমিন approve করলে আপনার ইমেইল দিয়ে লগিন করা যাবে।</p>
+            </div>
+
+            <form id="applicationForm" class="p-6 grid lg:grid-cols-[1.1fr_0.9fr] gap-8">
+                <div class="space-y-6">
+                    <div class="grid sm:grid-cols-2 gap-4">
+                        <div>
+                            <label for="applicationType" class="block text-gray-700 font-semibold mb-1">অ্যাকাউন্ট টাইপ</label>
+                            <select id="applicationType" class="w-full p-3 border rounded focus:outline-none focus:border-red-500 bg-gray-50">
+                                <option value="donor">রক্তদাতা (Donor)</option>
+                                <option value="hospital">মেডিকেল / হসপিটাল</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="appName" class="block text-gray-700 font-semibold mb-1">নাম</label>
+                            <input id="appName" required class="w-full p-3 border rounded focus:outline-none focus:border-red-500" placeholder="পূর্ণ নাম / প্রতিষ্ঠানের নাম">
+                        </div>
+                    </div>
+
+                    <div class="grid sm:grid-cols-2 gap-4">
+                        <div>
+                            <label for="appEmail" class="block text-gray-700 font-semibold mb-1">ইমেইল</label>
+                            <input id="appEmail" type="email" required class="w-full p-3 border rounded focus:outline-none focus:border-red-500" placeholder="example@email.com">
+                        </div>
+                        <div>
+                            <label for="appPassword" class="block text-gray-700 font-semibold mb-1">পাসওয়ার্ড</label>
+                            <input id="appPassword" type="password" required minlength="4" class="w-full p-3 border rounded focus:outline-none focus:border-red-500" placeholder="লগিন পাসওয়ার্ড">
+                        </div>
+                    </div>
+
+                    <div class="grid sm:grid-cols-2 gap-4">
+                        <div>
+                            <label for="appPhone" class="block text-gray-700 font-semibold mb-1">ফোন / WhatsApp</label>
+                            <input id="appPhone" required class="w-full p-3 border rounded focus:outline-none focus:border-red-500" placeholder="01xxxxxxxxx">
+                        </div>
+                        <div>
+                            <label class="block text-gray-700 font-semibold mb-1">জেলা ও উপজেলা</label>
+                            <div class="flex gap-2">
+                                <select id="appLocation" required class="w-1/2 p-3 border rounded focus:outline-none focus:border-red-500 bg-gray-50" onchange="populateUpazilas('appLocation', 'appUpazila')">
+                                    <option value="" disabled selected>জেলা</option>
+                                </select>
+                                <select id="appUpazila" required class="w-1/2 p-3 border rounded focus:outline-none focus:border-red-500 bg-gray-50" disabled>
+                                    <option value="" disabled selected>উপজেলা</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="donorFields" class="grid sm:grid-cols-2 gap-4">
+                        <div>
+                            <label for="donorBloodGroup" class="block text-gray-700 font-semibold mb-1">রক্তের গ্রুপ</label>
+                            <select id="donorBloodGroup" class="w-full p-3 border rounded focus:outline-none focus:border-red-500 bg-gray-50">
+                                <option value="A+">A+</option><option value="B+">B+</option>
+                                <option value="O+">O+</option><option value="AB+">AB+</option>
+                                <option value="A-">A-</option><option value="B-">B-</option>
+                                <option value="O-">O-</option><option value="AB-">AB-</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="donorProfession" class="block text-gray-700 font-semibold mb-1">পেশা</label>
+                            <input id="donorProfession" class="w-full p-3 border rounded focus:outline-none focus:border-red-500" placeholder="Student, Service, Business">
+                        </div>
+                        <div>
+                            <label for="donorDonationCount" class="block text-gray-700 font-semibold mb-1">কয়বার রক্ত দিয়েছেন</label>
+                            <input id="donorDonationCount" type="number" min="0" step="1" value="0" class="w-full p-3 border rounded focus:outline-none focus:border-red-500">
+                        </div>
+                        <div>
+                            <label for="donorLastDonation" class="block text-gray-700 font-semibold mb-1">শেষ রক্তদানের তারিখ</label>
+                            <input id="donorLastDonation" type="date" class="w-full p-3 border rounded focus:outline-none focus:border-red-500">
+                        </div>
+                        <div>
+                            <label for="donorAge" class="block text-gray-700 font-semibold mb-1">বয়স</label>
+                            <input id="donorAge" type="number" min="18" max="80" class="w-full p-3 border rounded focus:outline-none focus:border-red-500" placeholder="যেমন: 24">
+                        </div>
+                        <div>
+                            <label for="donorHealthNotes" class="block text-gray-700 font-semibold mb-1">স্বাস্থ্য/নোট</label>
+                            <input id="donorHealthNotes" class="w-full p-3 border rounded focus:outline-none focus:border-red-500" placeholder="কোনো রোগ/নোট থাকলে">
+                        </div>
+                    </div>
+
+                    <div id="hospitalFields" class="hidden grid sm:grid-cols-2 gap-4">
+                        <div>
+                            <label for="hospitalContactPerson" class="block text-gray-700 font-semibold mb-1">দায়িত্বপ্রাপ্ত ব্যক্তি</label>
+                            <input id="hospitalContactPerson" class="w-full p-3 border rounded focus:outline-none focus:border-blue-500" placeholder="Admin/Manager name">
+                        </div>
+                        <div>
+                            <label for="hospitalLicense" class="block text-gray-700 font-semibold mb-1">লাইসেন্স / রেজিস্ট্রেশন নম্বর</label>
+                            <input id="hospitalLicense" class="w-full p-3 border rounded focus:outline-none focus:border-blue-500" placeholder="Medical registration no.">
+                        </div>
+                        <div>
+                            <label for="hospitalIcu" class="block text-gray-700 font-semibold mb-1">ICU Bed</label>
+                            <input id="hospitalIcu" type="number" min="0" step="1" value="0" class="w-full p-3 border rounded focus:outline-none focus:border-blue-500">
+                        </div>
+                        <div>
+                            <label for="hospitalEmergency" class="block text-gray-700 font-semibold mb-1">Emergency Bed</label>
+                            <input id="hospitalEmergency" type="number" min="0" step="1" value="0" class="w-full p-3 border rounded focus:outline-none focus:border-blue-500">
+                        </div>
+                    </div>
+
+                    <button type="submit" class="w-full bg-red-600 text-white font-bold py-3 rounded hover:bg-red-700 transition shadow-lg text-lg">
+                        আবেদন জমা দিন
+                    </button>
+                </div>
+
+                <aside class="space-y-4">
+                    <label class="block text-gray-700 font-semibold mb-2">ম্যাপ থেকে সঠিক লোকেশন দিন</label>
+                    <div class="relative" style="height:480px;">
+                        <!-- Search box for map -->
+                        <div style="position:absolute;top:12px;left:12px;right:12px;z-index:20;">
+                            <input type="text" id="applyMapSearch" placeholder="🔍 জায়গা সার্চ করুন..." class="w-full px-4 py-2 rounded-lg border border-gray-300 text-sm shadow focus:outline-none focus:border-red-500" style="background:#fff;">
+                            <div class="map-search-results" id="applySearchResults"></div>
+                        </div>
+                        <!-- My Location button -->
+                        <button type="button" id="findLocationBtnInside"
+                            style="position:absolute;bottom:12px;left:12px;z-index:20;"
+                            class="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-4 py-2 rounded-lg font-bold text-sm shadow-lg hover:from-blue-700 hover:to-indigo-700 transition">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                            </svg>
+                            আমার অবস্থান খুঁজুন
+                        </button>
+                        <div id="locationMap" class="w-full rounded-lg border border-gray-300 overflow-hidden shadow-sm" style="height:100%;"></div>
+                    </div>
+                    <p id="selectedLocationText" class="text-sm font-medium text-gray-700 bg-gray-50 border border-gray-200 rounded-lg p-4 shadow-sm flex items-start gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-red-500 shrink-0 mt-0.5" viewBox="0 0 24 24" fill="currentColor"><path fill-rule="evenodd" d="M11.54 22.351l.07.04.028.016a.76.76 0 00.723 0l.028-.015.071-.041a16.975 16.975 0 001.144-.742 19.58 19.58 0 002.683-2.282c1.944-1.99 3.963-4.98 3.963-8.827a8.25 8.25 0 00-16.5 0c0 3.846 2.02 6.837 3.963 8.827a19.58 19.58 0 002.682 2.282 16.975 16.975 0 001.145.742zM12 13.5a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd" /></svg>
+                        <span>ম্যাপে ক্লিক করে অথবা সার্চ করে লোকেশন সিলেক্ট করুন।</span>
+                    </p>
+                </aside>
+            </form>
+        </section>
+    </main>
+
+    <script src="/js/notify.js"></script>
+    <script src="/js/bd-districts.js"></script>
+    <script src="/js/mapbox-utils.js"></script>
+    <script src="/js/apply.js"></script>
+</body>
+</html>

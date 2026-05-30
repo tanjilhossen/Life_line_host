@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ডোনার ড্যাশবোর্ড - LifeLine</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@300;400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://api.mapbox.com/mapbox-gl-js/v3.3.0/mapbox-gl.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://api.mapbox.com/mapbox-gl-js/v3.3.0/mapbox-gl.js"></script>
+    <style>
+        body { font-family: 'Hind Siliguri', 'Inter', sans-serif; background: #0f1117; }
+
+        /* ── Navbar ── */
+        .navbar {
+            background: linear-gradient(135deg, #1a0a0a 0%, #2d0808 60%, #1a0a0a 100%);
+            border-bottom: 1px solid rgba(220,38,38,.25);
+            backdrop-filter: blur(12px);
+        }
+        .nav-brand { font-family: 'Inter', sans-serif; letter-spacing: -0.5px; }
+        .nav-badge {
+            background: linear-gradient(135deg, #dc2626, #991b1b);
+            border: 1px solid rgba(255,255,255,.15);
+            box-shadow: 0 0 20px rgba(220,38,38,.4);
+        }
+        .logout-btn {
+            background: rgba(220,38,38,.12);
+            border: 1px solid rgba(220,38,38,.35);
+            transition: all .25s;
+        }
+        .logout-btn:hover { background: rgba(220,38,38,.28); border-color: #dc2626; }
+
+        /* ── Cards ── */
+        .glass-card {
+            background: rgba(255,255,255,.035);
+            border: 1px solid rgba(255,255,255,.08);
+            border-radius: 18px;
+            backdrop-filter: blur(16px);
+            transition: border-color .3s;
+        }
+        .glass-card:hover { border-color: rgba(220,38,38,.3); }
+
+        .card-top-red  { border-top: 3px solid #dc2626; }
+        .card-top-blue { border-top: 3px solid #3b82f6; }
+        .card-top-gray { border-top: 3px solid #4b5563; }
+
+        /* ── Stats strip ── */
+        .stat-box {
+            border-radius: 14px;
+            padding: 18px 12px;
+            text-align: center;
+            transition: transform .2s;
+        }
+        .stat-box:hover { transform: translateY(-3px); }
+        .stat-box.blue  { background: rgba(59,130,246,.12); border: 1px solid rgba(59,130,246,.25); }
+        .stat-box.green { background: rgba(34,197,94,.12);  border: 1px solid rgba(34,197,94,.25); }
+        .stat-box.rose  { background: rgba(239,68,68,.12);  border: 1px solid rgba(239,68,68,.25); }
+
+        /* ── Request cards ── */
+        .req-card {
+            background: rgba(255,255,255,.04);
+            border: 1px solid rgba(255,255,255,.09);
+            border-radius: 16px;
+            transition: transform .25s, box-shadow .25s, border-color .25s;
+            position: relative;
+            overflow: hidden;
+        }
+        .req-card::before {
+            content: '';
+            position: absolute;
+            left: 0; top: 0; bottom: 0;
+            width: 4px;
+            border-radius: 16px 0 0 16px;
+        }
+        .req-card.pending::before   { background: linear-gradient(180deg, #f59e0b, #dc2626); }
+        .req-card.accepted::before  { background: linear-gradient(180deg, #22c55e, #16a34a); }
+        .req-card.rejected::before  { background: #6b7280; }
+        .req-card.noresponse::before{ background: #374151; }
+
+        .req-card:hover { transform: translateY(-4px); box-shadow: 0 12px 35px rgba(0,0,0,.5); border-color: rgba(220,38,38,.3); }
+
+        .blood-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: linear-gradient(135deg, #7f1d1d, #991b1b);
+            border: 1px solid rgba(220,38,38,.4);
+            color: #fca5a5;
+            font-weight: 700;
+            font-size: .8rem;
+            padding: 5px 12px;
+            border-radius: 50px;
+            letter-spacing: .5px;
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            font-size: .75rem;
+            font-weight: 600;
+            padding: 4px 10px;
+            border-radius: 50px;
+        }
+        .status-badge.accepted { background: rgba(34,197,94,.15); border: 1px solid rgba(34,197,94,.3); color: #4ade80; }
+        .status-badge.rejected { background: rgba(239,68,68,.12); border: 1px solid rgba(239,68,68,.3); color: #f87171; }
+        .status-badge.pending  { background: rgba(245,158,11,.12); border: 1px solid rgba(245,158,11,.3); color: #fbbf24; }
+        .status-badge.noresponse { background: rgba(107,114,128,.12); border: 1px solid rgba(107,114,128,.3); color: #9ca3af; }
+
+        .req-info-row {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            color: rgba(255,255,255,.7);
+            font-size: .85rem;
+            margin-top: 8px;
+        }
+        .req-info-row .icon { min-width: 20px; text-align: center; font-size: 1rem; }
+        .req-info-row .label { color: rgba(255,255,255,.45); font-size: .78rem; white-space: nowrap; }
+        .req-info-row .val { color: rgba(255,255,255,.85); font-weight: 500; }
+
+        /* Action buttons */
+        .btn-accept {
+            flex: 1;
+            background: linear-gradient(135deg, #15803d, #16a34a);
+            color: #fff;
+            font-weight: 700;
+            font-size: .8rem;
+            padding: 9px 0;
+            border-radius: 10px;
+            border: none;
+            cursor: pointer;
+            transition: all .2s;
+            box-shadow: 0 4px 12px rgba(22,163,74,.3);
+        }
+        .btn-accept:hover { background: linear-gradient(135deg, #166534, #15803d); transform: translateY(-1px); box-shadow: 0 6px 18px rgba(22,163,74,.4); }
+
+        .btn-reject {
+            flex: 1;
+            background: rgba(239,68,68,.12);
+            color: #f87171;
+            font-weight: 700;
+            font-size: .8rem;
+            padding: 9px 0;
+            border-radius: 10px;
+            border: 1px solid rgba(239,68,68,.3);
+            cursor: pointer;
+            transition: all .2s;
+        }
+        .btn-reject:hover { background: rgba(239,68,68,.22); transform: translateY(-1px); }
+
+        .contact-box {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(34,197,94,.08);
+            border: 1px solid rgba(34,197,94,.2);
+            border-radius: 10px;
+            padding: 10px 14px;
+            margin-top: 12px;
+        }
+        .contact-box a { color: #4ade80; font-weight: 700; text-decoration: none; font-size: .9rem; }
+        .contact-box a:hover { text-decoration: underline; }
+
+        /* Form inputs */
+        .form-input {
+            width: 100%;
+            background: rgba(255,255,255,.06);
+            border: 1px solid rgba(255,255,255,.12);
+            border-radius: 10px;
+            padding: 11px 14px;
+            color: rgba(255,255,255,.9);
+            font-size: .9rem;
+            outline: none;
+            transition: border-color .2s, box-shadow .2s;
+            font-family: inherit;
+        }
+        .form-input:focus { border-color: rgba(220,38,38,.6); box-shadow: 0 0 0 3px rgba(220,38,38,.1); }
+        .form-input option { background: #1e1e2e; color: #e5e7eb; }
+
+        .form-label { display: block; color: rgba(255,255,255,.6); font-size: .82rem; font-weight: 600; margin-bottom: 6px; text-transform: uppercase; letter-spacing: .5px; }
+
+        /* Status toggle */
+        .status-select {
+            background: rgba(255,255,255,.06);
+            border: 1px solid rgba(255,255,255,.12);
+            border-radius: 10px;
+            padding: 12px 14px;
+            color: rgba(255,255,255,.9);
+            width: 100%;
+            outline: none;
+            font-weight: 700;
+            font-size: .95rem;
+            cursor: pointer;
+            font-family: inherit;
+            transition: border-color .2s;
+        }
+        .status-select:focus { border-color: rgba(220,38,38,.6); }
+        .status-select option { background: #1e1e2e; }
+
+        .btn-primary {
+            width: 100%;
+            background: linear-gradient(135deg, #dc2626, #991b1b);
+            color: #fff;
+            font-weight: 700;
+            padding: 13px 0;
+            border-radius: 12px;
+            border: none;
+            cursor: pointer;
+            font-size: .95rem;
+            transition: all .25s;
+            box-shadow: 0 6px 20px rgba(220,38,38,.3);
+            font-family: inherit;
+        }
+        .btn-primary:hover { background: linear-gradient(135deg, #b91c1c, #7f1d1d); transform: translateY(-2px); box-shadow: 0 10px 28px rgba(220,38,38,.4); }
+
+        /* Profile display */
+        .profile-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 9px 0;
+            border-bottom: 1px solid rgba(255,255,255,.06);
+            font-size: .87rem;
+        }
+        .profile-row:last-child { border-bottom: none; }
+        .profile-row .key { color: rgba(255,255,255,.45); }
+        .profile-row .val { color: rgba(255,255,255,.85); font-weight: 600; text-align: right; max-width: 60%; word-break: break-word; }
+
+        /* Section heading */
+        .section-heading {
+            font-family: 'Inter', sans-serif;
+            font-size: 1rem;
+            font-weight: 700;
+            color: rgba(255,255,255,.9);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 18px;
+        }
+        .section-heading .dot {
+            width: 8px; height: 8px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        /* Empty state */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: rgba(255,255,255,.3);
+        }
+        .empty-state .icon { font-size: 3rem; margin-bottom: 14px; }
+
+        /* Countdown */
+        .countdown-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(239,68,68,.12);
+            border: 1px solid rgba(239,68,68,.25);
+            border-radius: 50px;
+            padding: 4px 10px;
+            font-size: .78rem;
+            font-weight: 700;
+            color: #f87171;
+            margin-top: 10px;
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: rgba(255,255,255,.03); }
+        ::-webkit-scrollbar-thumb { background: rgba(220,38,38,.3); border-radius: 3px; }
+
+        /* Map */
+        #locationMap { width: 100%; height: 260px; background: #1e1e2e; border-radius: 12px; }
+        .map-wrap { border-radius: 12px; overflow: hidden; border: 1px solid rgba(255,255,255,.1); position: relative; }
+        .mapboxgl-ctrl-logo, .mapboxgl-ctrl-attrib { display: none !important; }
+        .donor-map-search {
+            position: absolute; top: 10px; left: 10px; right: 50px; z-index: 10;
+        }
+        .donor-map-search input {
+            width: 100%; padding: 8px 12px; border-radius: 8px;
+            border: 1px solid rgba(255,255,255,.15); font-size: .85rem;
+            background: rgba(30,30,46,.9); color: #e5e7eb; outline: none;
+            box-shadow: 0 2px 8px rgba(0,0,0,.3);
+        }
+        .donor-search-results {
+            background: #1e1e2e; border-radius: 8px;
+            border: 1px solid rgba(255,255,255,.1);
+            box-shadow: 0 4px 16px rgba(0,0,0,.4);
+            margin-top: 4px; max-height: 180px; overflow-y: auto;
+            display: none; position: absolute; left: 0; right: 0; z-index: 100;
+        }
+        .donor-search-results.show { display: block; }
+        .donor-search-item {
+            padding: 8px 12px; cursor: pointer; font-size: .82rem;
+            color: rgba(255,255,255,.7); border-bottom: 1px solid rgba(255,255,255,.05);
+        }
+        .donor-search-item:hover { background: rgba(255,255,255,.05); }
+
+        /* Responsive grid */
+        @media (max-width: 1024px) {
+            .main-grid { grid-template-columns: 1fr !important; }
+        }
+
+        /* Pulse dot */
+        .pulse-dot {
+            width: 10px; height: 10px;
+            background: #22c55e;
+            border-radius: 50%;
+            box-shadow: 0 0 0 0 rgba(34,197,94,.5);
+            animation: pulse 1.8s infinite;
+        }
+        @keyframes pulse {
+            0%   { box-shadow: 0 0 0 0 rgba(34,197,94,.5); }
+            70%  { box-shadow: 0 0 0 8px rgba(34,197,94,0); }
+            100% { box-shadow: 0 0 0 0 rgba(34,197,94,0); }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ══ NAVBAR ══ -->
+    <nav class="navbar sticky top-0 z-50 px-6 py-4 flex justify-between items-center">
+        <div class="flex items-center gap-3">
+            <div class="nav-badge w-9 h-9 rounded-full flex items-center justify-center text-white font-bold text-lg">🩸</div>
+            <div>
+                <div class="nav-brand text-white font-bold text-lg leading-tight" id="donorNameDisplay">ডোনার পোর্টাল</div>
+                <div class="text-xs text-red-400/70 font-medium">LifeLine Blood Network</div>
+            </div>
+        </div>
+        <button onclick="logout()" class="logout-btn text-red-400 text-sm font-semibold px-5 py-2 rounded-lg flex items-center gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+            লগআউট
+        </button>
+    </nav>
+
+    <!-- ══ MAIN ══ -->
+    <main class="max-w-7xl mx-auto px-4 py-8 space-y-8">
+
+        <!-- ── BLOOD REQUESTS — একদম উপরে ── -->
+        <div class="glass-card card-top-blue p-6">
+
+            <!-- Header row -->
+            <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
+                <div class="section-heading mb-0">
+                    <span class="dot" style="background:#3b82f6; box-shadow:0 0 8px #3b82f6;"></span>
+                    🩸 রক্তের রিকোয়েস্ট সমূহ
+                </div>
+                <div class="flex gap-3">
+                    <div class="stat-box blue">
+                        <div class="text-2xl font-bold text-blue-400" id="totalReqs">0</div>
+                        <div class="text-xs text-white/50 mt-1">মোট</div>
+                    </div>
+                    <div class="stat-box green">
+                        <div class="text-2xl font-bold text-green-400" id="acceptedReqs">0</div>
+                        <div class="text-xs text-white/50 mt-1">গ্রহণ</div>
+                    </div>
+                    <div class="stat-box rose">
+                        <div class="text-2xl font-bold text-red-400" id="rejectedReqs">0</div>
+                        <div class="text-xs text-white/50 mt-1">বাতিল</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Grid of request cards -->
+            <div id="requestsList" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                <!-- Injected by JS -->
+            </div>
+        </div>
+
+        <!-- ── Status + Profile ── -->
+        <div class="main-grid grid lg:grid-cols-2 gap-6">
+
+            <!-- Status Card -->
+            <div class="glass-card card-top-red p-6">
+                <div class="section-heading">
+                    <span class="dot" style="background:#dc2626;"></span>
+                    আপনার বর্তমান স্ট্যাটাস
+                </div>
+                <p class="text-sm text-white/40 mb-5 leading-relaxed">রক্ত দিতে প্রস্তুত থাকলে <strong class="text-green-400">Available</strong> রাখুন।</p>
+                <form id="updateStatusForm" class="space-y-4">
+                    <div>
+                        <label class="form-label">স্ট্যাটাস বেছে নিন</label>
+                        <select id="donorStatus" class="status-select">
+                            <option value="Available">🟢 Available — রক্ত দিতে প্রস্তুত</option>
+                            <option value="Busy">🔴 Busy — এখন ব্যস্ত আছেন</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn-primary">স্ট্যাটাস আপডেট করুন</button>
+                </form>
+            </div>
+
+            <!-- Profile Card -->
+            <div class="glass-card card-top-gray p-6">
+                <div class="section-heading">
+                    <span class="dot" style="background:#6b7280;"></span>
+                    ডোনার প্রোফাইল
+                </div>
+                <div id="donorProfile" class="space-y-0"></div>
+            </div>
+        </div>
+
+        <!-- ── PROFILE UPDATE FORM ── -->
+        <div class="glass-card card-top-red p-6">
+            <div class="section-heading">
+                <span class="dot" style="background:#dc2626;"></span>
+                প্রোফাইল ও লোকেশন আপডেট
+            </div>
+            <form id="updateProfileForm">
+                <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
+                    <div>
+                        <label for="dPhone" class="form-label">ফোন নম্বর</label>
+                        <input type="text" id="dPhone" required class="form-input" placeholder="01XXXXXXXXX">
+                    </div>
+                    <div>
+                        <label for="dAge" class="form-label">বয়স</label>
+                        <input type="number" id="dAge" min="18" max="80" class="form-input" placeholder="25">
+                    </div>
+                    <div>
+                        <label for="dProfession" class="form-label">পেশা</label>
+                        <input type="text" id="dProfession" class="form-input" placeholder="ছাত্র / চাকরি...">
+                    </div>
+                    <div>
+                        <label class="form-label">জেলা</label>
+                        <select id="dLocationName" required class="form-input" onchange="populateUpazilas('dLocationName', 'dUpazila')">
+                            <option value="" disabled selected>জেলা বেছে নিন</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="form-label">উপজেলা</label>
+                        <select id="dUpazila" required class="form-input" disabled>
+                            <option value="" disabled selected>উপজেলা বেছে নিন</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <label class="form-label mb-2">ম্যাপ থেকে লোকেশন দিন</label>
+                    <div class="map-wrap relative">
+                        <!-- Donor map search -->
+                        <div class="donor-map-search">
+                            <input type="text" id="donorMapSearch" placeholder="🔍 জায়গা খুঁজুন...">
+                            <div class="donor-search-results" id="donorSearchResults"></div>
+                        </div>
+                        <!-- My Location button -->
+                        <button type="button" id="findLocationBtnInside"
+                            style="position:absolute;bottom:10px;left:10px;z-index:10;"
+                            class="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-3 py-2 rounded-lg font-bold text-xs shadow-lg hover:from-blue-700 hover:to-indigo-700 transition">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                            </svg>
+                            আমার অবস্থান
+                        </button>
+                        <div id="locationMap"></div>
+                    </div>
+                    <p id="selectedLocationText" class="text-xs text-white/40 mt-2 flex items-center gap-1">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                        ম্যাপ থেকে লোকেশন সিলেক্ট করুন।
+                    </p>
+                </div>
+
+                <button type="submit" class="btn-primary">আপডেট সেভ করুন</button>
+            </form>
+        </div>
+    </main>
+
+    <script src="/js/notify.js"></script>
+    <script src="/js/bd-districts.js"></script>
+    <script src="/js/mapbox-utils.js"></script>
+    <script src="/js/donor.js"></script>
+</body>
+</html>

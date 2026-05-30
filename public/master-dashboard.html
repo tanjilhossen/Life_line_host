@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LifeLine Admin Console</title>
+    <link rel="stylesheet" href="https://api.mapbox.com/mapbox-gl-js/v3.3.0/mapbox-gl.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://api.mapbox.com/mapbox-gl-js/v3.3.0/mapbox-gl.js"></script>
+</head>
+<body class="bg-slate-100 text-slate-900 min-h-screen">
+    <div class="min-h-screen lg:grid lg:grid-cols-[280px_1fr]">
+        <aside class="bg-slate-950 text-white p-5 lg:min-h-screen">
+            <div class="flex items-center justify-between lg:block">
+                <div>
+                    <p class="text-xs uppercase tracking-[0.2em] text-red-300 font-bold">LifeLine</p>
+                    <h1 class="text-2xl font-bold mt-1">Admin Console</h1>
+                </div>
+                <button onclick="logout()" class="lg:hidden text-sm bg-red-600 hover:bg-red-700 px-4 py-2 rounded-md transition font-bold">Logout</button>
+            </div>
+
+            <nav class="mt-8 grid gap-2 text-sm font-semibold">
+                <button class="navTab text-left px-3 py-3 rounded-md bg-white/10 text-white" data-panel="overviewPanel">Overview</button>
+                <button class="navTab text-left px-3 py-3 rounded-md text-slate-300 hover:bg-white/10 hover:text-white" data-panel="applicationsPanel">Applications</button>
+                <button class="navTab text-left px-3 py-3 rounded-md text-slate-300 hover:bg-white/10 hover:text-white" data-panel="usersPanel">Users</button>
+                <button class="navTab text-left px-3 py-3 rounded-md text-slate-300 hover:bg-white/10 hover:text-white" data-panel="bloodRequestsPanel">Blood Requests</button>
+                <button class="navTab text-left px-3 py-3 rounded-md text-slate-300 hover:bg-white/10 hover:text-white" data-panel="quickCreatePanel">Quick Create</button>
+                <button class="navTab text-left px-3 py-3 rounded-md text-slate-300 hover:bg-white/10 hover:text-white" data-panel="testDataPanel">Test Data</button>
+                <a href="/apply.html" class="px-3 py-3 rounded-md text-slate-300 hover:bg-white/10 hover:text-white">Apply Page</a>
+                <a href="/login.html" class="px-3 py-3 rounded-md text-slate-300 hover:bg-white/10 hover:text-white">User Login</a>
+            </nav>
+
+            <div class="mt-8 p-4 rounded-lg bg-white/5 border border-white/10">
+                <p class="text-xs uppercase tracking-wider text-slate-400 font-bold">Security</p>
+                <p class="text-sm mt-2 text-slate-200">Root session active</p>
+                <p id="lastUpdated" class="text-xs text-slate-400 mt-1">Sync pending</p>
+            </div>
+
+            <button onclick="logout()" class="hidden lg:block mt-6 w-full text-sm bg-red-600 hover:bg-red-700 px-4 py-3 rounded-md transition font-bold">Logout</button>
+        </aside>
+
+        <main class="p-4 sm:p-6 lg:p-8">
+            <section id="overviewPanel" class="adminPanel space-y-6">
+                <header class="flex flex-col xl:flex-row xl:items-end xl:justify-between gap-4">
+                    <div>
+                        <p class="text-sm font-bold text-red-600 uppercase tracking-wider">Master Dashboard</p>
+                        <h2 class="text-3xl sm:text-4xl font-bold mt-1">Operations Overview</h2>
+                        <p class="text-slate-600 mt-2">Applications, hospitals, donors, and emergency readiness in one place.</p>
+                    </div>
+                    <div class="flex flex-wrap gap-3">
+                        <a href="/" class="px-4 py-2 rounded-md border border-slate-300 bg-white font-bold hover:bg-slate-50">Public Site</a>
+                        <button id="refreshAll" class="px-4 py-2 rounded-md bg-slate-950 text-white font-bold hover:bg-black">Refresh Dashboard</button>
+                    </div>
+                </header>
+
+                <div class="grid sm:grid-cols-2 xl:grid-cols-4 gap-4">
+                    <div class="bg-white rounded-lg border border-slate-200 p-5 shadow-sm">
+                        <p class="text-sm text-slate-500 font-semibold">Pending Applications</p>
+                        <p id="statPending" class="text-3xl font-bold mt-2">0</p>
+                    </div>
+                    <div class="bg-white rounded-lg border border-slate-200 p-5 shadow-sm">
+                        <p class="text-sm text-slate-500 font-semibold">Active Donors</p>
+                        <p id="statDonors" class="text-3xl font-bold mt-2">0</p>
+                    </div>
+                    <div class="bg-white rounded-lg border border-slate-200 p-5 shadow-sm">
+                        <p class="text-sm text-slate-500 font-semibold">Active Hospitals</p>
+                        <p id="statHospitals" class="text-3xl font-bold mt-2">0</p>
+                    </div>
+                    <div class="bg-white rounded-lg border border-slate-200 p-5 shadow-sm">
+                        <p class="text-sm text-slate-500 font-semibold">Live Beds</p>
+                        <p id="statBeds" class="text-3xl font-bold mt-2">0</p>
+                    </div>
+                </div>
+
+                <div class="grid xl:grid-cols-2 gap-6">
+                    <section class="bg-white rounded-lg border border-slate-200 p-5 shadow-sm">
+                        <h3 class="text-xl font-bold">Approval Summary</h3>
+                        <div class="mt-4 grid gap-3 text-sm">
+                            <div class="flex justify-between border-b pb-2"><span class="text-slate-500">Approved</span><strong id="statApproved">0</strong></div>
+                            <div class="flex justify-between border-b pb-2"><span class="text-slate-500">Rejected</span><strong id="statRejected">0</strong></div>
+                            <div class="flex justify-between border-b pb-2"><span class="text-slate-500">Available Donors</span><strong id="statAvailableDonors">0</strong></div>
+                            <div class="flex justify-between"><span class="text-slate-500">ICU / Emergency</span><strong id="statBedBreakdown">0 / 0</strong></div>
+                        </div>
+                    </section>
+
+                    <section class="bg-white rounded-lg border border-slate-200 p-5 shadow-sm">
+                        <h3 class="text-xl font-bold">Admin Shortcuts</h3>
+                        <div class="mt-4 grid sm:grid-cols-2 gap-3">
+                            <button class="navTab p-3 rounded-md border border-slate-200 hover:border-red-400 hover:bg-red-50 font-bold text-left" data-panel="applicationsPanel">Review Applications</button>
+                            <button class="navTab p-3 rounded-md border border-slate-200 hover:border-slate-400 hover:bg-slate-50 font-bold text-left" data-panel="usersPanel">Manage Users</button>
+                            <button class="navTab p-3 rounded-md border border-slate-200 hover:border-blue-400 hover:bg-blue-50 font-bold text-left" data-panel="quickCreatePanel">Create Account</button>
+                            <a href="/apply.html" class="block p-3 rounded-md border border-slate-200 hover:border-red-400 hover:bg-red-50 font-bold">Open Apply Page</a>
+                        </div>
+                    </section>
+                </div>
+            </section>
+
+            <section id="applicationsPanel" class="adminPanel hidden space-y-6">
+                <header class="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4">
+                    <div>
+                        <p class="text-sm font-bold text-red-600 uppercase tracking-wider">Applications</p>
+                        <h2 class="text-3xl font-bold mt-1">Application Review</h2>
+                        <p class="text-slate-600 mt-2">Only name, username/email and WhatsApp are shown first. Click a row to open full details.</p>
+                    </div>
+                    <button id="refreshApplications" class="px-4 py-2 rounded-md bg-slate-900 text-white font-bold hover:bg-black">Refresh</button>
+                </header>
+
+                <div class="bg-white rounded-lg border border-slate-200 shadow-sm">
+                    <div class="p-5 border-b border-slate-200 grid md:grid-cols-[1fr_auto] gap-3">
+                        <input id="applicationSearch" class="w-full p-3 border border-slate-300 rounded-md focus:outline-none focus:border-slate-900" placeholder="Search name, email, WhatsApp, location, blood group">
+                        <div class="flex rounded-md border border-slate-300 overflow-hidden">
+                            <button class="statusTab px-4 py-3 bg-slate-900 text-white font-bold" data-status="Pending">Pending</button>
+                            <button class="statusTab px-4 py-3 bg-white text-slate-700 font-bold border-l" data-status="Approved">Approved</button>
+                            <button class="statusTab px-4 py-3 bg-white text-slate-700 font-bold border-l" data-status="Rejected">Rejected</button>
+                        </div>
+                    </div>
+                    <div id="applicationList" class="p-5 grid gap-3">
+                        <div class="p-4 bg-slate-50 border border-slate-200 rounded-md text-slate-500">Loading applications...</div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="usersPanel" class="adminPanel hidden space-y-6">
+                <header class="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4">
+                    <div>
+                        <p class="text-sm font-bold text-red-600 uppercase tracking-wider">Users</p>
+                        <h2 class="text-3xl font-bold mt-1">User Management</h2>
+                        <p class="text-slate-600 mt-2">Admin can search, edit, suspend/inactivate, and delete donor or hospital accounts.</p>
+                    </div>
+                    <button id="refreshUsers" class="px-4 py-2 rounded-md bg-slate-900 text-white font-bold hover:bg-black">Refresh Users</button>
+                </header>
+
+                <div class="bg-white rounded-lg border border-slate-200 shadow-sm">
+                    <div class="p-5 border-b border-slate-200 grid md:grid-cols-[1fr_auto] gap-3">
+                        <input id="userSearch" class="w-full p-3 border border-slate-300 rounded-md focus:outline-none focus:border-slate-900" placeholder="Search users by name, username, WhatsApp, email, location">
+                        <div class="flex rounded-md border border-slate-300 overflow-hidden">
+                            <button class="userTypeTab px-4 py-3 bg-slate-900 text-white font-bold" data-type="donors">Donors</button>
+                            <button class="userTypeTab px-4 py-3 bg-white text-slate-700 font-bold border-l" data-type="hospitals">Hospitals</button>
+                        </div>
+                    </div>
+                    <div id="userList" class="p-5 grid gap-3">
+                        <div class="p-4 bg-slate-50 border border-slate-200 rounded-md text-slate-500">Loading users...</div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="quickCreatePanel" class="adminPanel hidden space-y-6">
+                <header>
+                    <p class="text-sm font-bold text-red-600 uppercase tracking-wider">Quick Create</p>
+                    <h2 class="text-3xl font-bold mt-1">Create Full Account</h2>
+                    <p class="text-slate-600 mt-2">Admin-created accounts now include login, location, map coordinates, and full profile details.</p>
+                </header>
+
+                <div class="grid xl:grid-cols-2 gap-6">
+                    <div class="bg-white p-5 rounded-lg shadow-sm border border-slate-200">
+                        <div class="flex items-center justify-between gap-4 mb-5">
+                            <div>
+                                <h3 class="text-xl font-bold">Create Hospital</h3>
+                                <p class="text-sm text-slate-500 mt-1">Full medical profile and bed data.</p>
+                            </div>
+                            <span class="px-3 py-1 rounded-md bg-blue-50 text-blue-700 text-xs font-bold">Hospital</span>
+                        </div>
+                        <form id="addHospitalForm" class="grid sm:grid-cols-2 gap-4">
+                            <input type="text" id="hName" required placeholder="Hospital name" class="field">
+                            <input type="email" id="hEmail" placeholder="Email" class="field">
+                            <input type="text" id="hPhone" placeholder="WhatsApp / phone" class="field">
+                            <input type="text" id="hLocation" required placeholder="Location" class="field">
+                            <button type="button" class="openMapPicker sm:col-span-2 bg-slate-900 text-white font-bold py-3 rounded-md hover:bg-black" data-context="createHospital">Pick hospital location on map</button>
+                            <input type="text" id="hAddress" placeholder="Full address" class="field sm:col-span-2">
+                            <input type="number" id="hLatitude" step="any" placeholder="Latitude" class="field">
+                            <input type="number" id="hLongitude" step="any" placeholder="Longitude" class="field">
+                            <input type="text" id="hContactPerson" placeholder="Contact person" class="field">
+                            <input type="text" id="hLicenseNumber" placeholder="License / registration" class="field">
+                            <input type="number" id="hIcuAvailable" min="0" value="0" placeholder="ICU beds" class="field">
+                            <input type="number" id="hEmergencyAvailable" min="0" value="0" placeholder="Emergency beds" class="field">
+                            <input type="text" id="hUsername" required placeholder="Login username" class="field">
+                            <input type="password" id="hPassword" required placeholder="Login password" class="field">
+                            <button type="submit" class="sm:col-span-2 w-full bg-blue-700 text-white font-bold py-3 rounded-md hover:bg-blue-800">Create Hospital</button>
+                        </form>
+                    </div>
+
+                    <div class="bg-white p-5 rounded-lg shadow-sm border border-slate-200">
+                        <div class="flex items-center justify-between gap-4 mb-5">
+                            <div>
+                                <h3 class="text-xl font-bold">Create Donor</h3>
+                                <p class="text-sm text-slate-500 mt-1">Full donor medical and contact profile.</p>
+                            </div>
+                            <span class="px-3 py-1 rounded-md bg-red-50 text-red-700 text-xs font-bold">Donor</span>
+                        </div>
+                        <form id="addDonorForm" class="grid sm:grid-cols-2 gap-4">
+                            <input type="text" id="dName" required placeholder="Donor name" class="field">
+                            <input type="email" id="dEmail" placeholder="Email" class="field">
+                            <select id="dBloodGroup" class="field bg-white">
+                                <option value="A+">A+</option><option value="B+">B+</option>
+                                <option value="O+">O+</option><option value="AB+">AB+</option>
+                                <option value="A-">A-</option><option value="B-">B-</option>
+                                <option value="O-">O-</option><option value="AB-">AB-</option>
+                            </select>
+                            <input type="text" id="dPhone" required placeholder="WhatsApp number" class="field">
+                            <input type="text" id="dLocation" required placeholder="Location" class="field">
+                            <button type="button" class="openMapPicker sm:col-span-2 bg-slate-900 text-white font-bold py-3 rounded-md hover:bg-black" data-context="createDonor">Pick donor location on map</button>
+                            <input type="text" id="dAddress" placeholder="Full address" class="field">
+                            <input type="number" id="dLatitude" step="any" placeholder="Latitude" class="field">
+                            <input type="number" id="dLongitude" step="any" placeholder="Longitude" class="field">
+                            <input type="text" id="dProfession" placeholder="Profession" class="field">
+                            <input type="number" id="dDonationCount" min="0" value="0" placeholder="Donation count" class="field">
+                            <input type="date" id="dLastDonationDate" class="field">
+                            <input type="number" id="dAge" min="18" max="80" placeholder="Age" class="field">
+                            <input type="text" id="dHealthNotes" placeholder="Health notes" class="field sm:col-span-2">
+                            <select id="dStatus" class="field bg-white">
+                                <option value="Available">Available</option>
+                                <option value="Busy">Busy</option>
+                            </select>
+                            <input type="text" id="dUsername" required placeholder="Login username" class="field">
+                            <input type="password" id="dPassword" required placeholder="Login password" class="field">
+                            <button type="submit" class="sm:col-span-2 w-full bg-red-600 text-white font-bold py-3 rounded-md hover:bg-red-700">Create Donor</button>
+                        </form>
+                    </div>
+                </div>
+            </section>
+
+            <!-- BLOOD REQUESTS PANEL -->
+            <section id="bloodRequestsPanel" class="adminPanel hidden space-y-6">
+                <header class="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4">
+                    <div>
+                        <p class="text-sm font-bold text-red-600 uppercase tracking-wider">Emergency Requests</p>
+                        <h2 class="text-3xl font-bold mt-1">Blood Request Log</h2>
+                        <p class="text-slate-600 mt-2">All blood requests with serial notification queue status.</p>
+                    </div>
+                    <button id="refreshBloodRequests" class="px-4 py-2 rounded-md bg-slate-900 text-white font-bold hover:bg-black">Refresh</button>
+                </header>
+                <div class="bg-white rounded-lg border border-slate-200 shadow-sm overflow-x-auto">
+                    <table class="w-full text-sm" id="bloodRequestsTable">
+                        <thead><tr class="bg-slate-50 border-b">
+                            <th class="p-3 text-left">ID</th>
+                            <th class="p-3 text-left">Blood</th>
+                            <th class="p-3 text-left">Location</th>
+                            <th class="p-3 text-left">Hospital</th>
+                            <th class="p-3 text-left">Status</th>
+                            <th class="p-3 text-left">Queued</th>
+                            <th class="p-3 text-left">Accepted By</th>
+                            <th class="p-3 text-left">Created</th>
+                        </tr></thead>
+                        <tbody id="bloodRequestsBody"><tr><td colspan="8" class="p-4 text-slate-500">Loading...</td></tr></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- TEST DATA PANEL -->
+            <section id="testDataPanel" class="adminPanel hidden space-y-6">
+                <header>
+                    <p class="text-sm font-bold text-green-600 uppercase tracking-wider">Test Data</p>
+                    <h2 class="text-3xl font-bold mt-1">Seed Test Donors</h2>
+                    <p class="text-slate-600 mt-2">Create 15 test donors across Dhaka, Chittagong, Sylhet, Rajshahi, and Khulna for testing the serial notification system.</p>
+                </header>
+                <div class="bg-white p-6 rounded-lg border border-slate-200 shadow-sm space-y-4 max-w-lg">
+                    <div class="p-4 bg-amber-50 border border-amber-200 rounded-md text-sm text-amber-800">
+                        <strong>Note:</strong> This creates 15 test donor accounts with real Bangladesh coordinates. They will appear in the donor matching system.
+                    </div>
+                    <div id="seedResult" class="hidden p-4 bg-green-50 border border-green-200 rounded-md text-sm text-green-800"></div>
+                    <button id="seedTestDonorsBtn" class="w-full bg-green-600 text-white font-bold py-3 rounded-md hover:bg-green-700 transition">
+                        🧪 Create 15 Test Donors Now
+                    </button>
+                </div>
+
+                <!-- Donors View Table -->
+                <div class="bg-white rounded-lg border border-slate-200 shadow-sm">
+                    <div class="p-5 border-b flex items-center justify-between">
+                        <h3 class="font-bold text-lg">All Donors Status</h3>
+                        <button id="refreshDonorsView" class="px-4 py-2 rounded-md bg-slate-900 text-white font-bold hover:bg-black text-sm">Refresh</button>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm" id="donorsViewTable">
+                            <thead><tr class="bg-slate-50 border-b">
+                                <th class="p-3 text-left">Name</th>
+                                <th class="p-3 text-left">Blood</th>
+                                <th class="p-3 text-left">Location</th>
+                                <th class="p-3 text-left">Status</th>
+                                <th class="p-3 text-left">FCM</th>
+                                <th class="p-3 text-left">Requests</th>
+                                <th class="p-3 text-left">Accepted</th>
+                                <th class="p-3 text-left">Pending</th>
+                            </tr></thead>
+                            <tbody id="donorsViewBody"><tr><td colspan="8" class="p-4 text-slate-500">Click Refresh to load.</td></tr></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <div id="editModal" class="fixed inset-0 bg-slate-950/60 hidden items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-auto">
+            <div class="p-5 border-b flex justify-between items-center gap-4">
+                <div>
+                    <h3 id="editModalTitle" class="text-xl font-bold">Edit User</h3>
+                    <p class="text-sm text-slate-500">Update profile, login, status, and location details.</p>
+                </div>
+                <button id="closeEditModal" class="px-3 py-2 rounded-md border border-slate-300 font-bold">Close</button>
+            </div>
+            <form id="editUserForm" class="p-5 grid sm:grid-cols-2 gap-4"></form>
+        </div>
+    </div>
+
+    <div id="adminMapModal" class="fixed inset-0 bg-slate-950/70 hidden items-center justify-center p-4 z-[60]">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-5xl max-h-[92vh] overflow-auto">
+            <div class="p-5 border-b flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div>
+                    <h3 id="adminMapTitle" class="text-xl font-bold">Select Location</h3>
+                    <p class="text-sm text-slate-500">Search, use current location, or click/drag marker on the map.</p>
+                </div>
+                <button id="closeAdminMap" class="px-3 py-2 rounded-md border border-slate-300 font-bold">Close</button>
+            </div>
+            <div class="p-5 space-y-4">
+                <div class="relative h-[460px] rounded-lg border border-slate-200 overflow-hidden shadow-sm">
+                    <!-- Map Search Control -->
+                    <div id="adminMapControls" class="hidden">
+                        <div class="m-3">
+
+                        </div>
+                    </div>
+
+                    <!-- Current Location Control -->
+                    <div id="adminCurrentLocationControl" class="hidden">
+                        <button type="button" id="adminUseCurrentLocation" class="m-3 bg-white p-3 rounded-full shadow-md hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-900 transition group" title="My Location">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6 text-slate-600 group-hover:text-blue-600 transition">
+                                <path d="M12 8.25a3.75 3.75 0 100 7.5 3.75 3.75 0 000-7.5z" />
+                                <path fill-rule="evenodd" d="M11.25 2.25a.75.75 0 011.5 0v1.543a8.25 8.25 0 016.957 6.957h1.543a.75.75 0 010 1.5h-1.543a8.25 8.25 0 01-6.957 6.957v1.543a.75.75 0 01-1.5 0v-1.543a8.25 8.25 0 01-6.957-6.957H2.75a.75.75 0 010-1.5h1.543a8.25 8.25 0 016.957-6.957V2.25z" clip-rule="evenodd" />
+                            </svg>
+                        </button>
+                    </div>
+
+                    <div id="adminMap" class="w-full h-full bg-slate-200"></div>
+                </div>
+                
+                <p id="adminMapSelectedText" class="text-sm font-medium text-slate-700 bg-slate-50 border border-slate-200 rounded-md p-3 flex items-start gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-emerald-500 shrink-0" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" /></svg>
+                    <span>No location selected yet.</span>
+                </p>
+                <div class="grid sm:grid-cols-1 gap-3">
+                    <button id="adminApplyMapLocation" type="button" class="w-full bg-slate-900 text-white font-bold py-3 rounded-md hover:bg-black transition">Apply selected location</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        .field { width: 100%; padding: 0.75rem; border: 1px solid #cbd5e1; border-radius: 0.375rem; outline: none; }
+        .field:focus { border-color: #0f172a; }
+        .mapboxgl-ctrl-logo, .mapboxgl-ctrl-attrib { display: none !important; }
+    </style>
+    <script src="/js/notify.js"></script>
+    <script src="/js/bd-districts.js"></script>
+    <script src="/js/mapbox-utils.js"></script>
+    <script src="/js/master.js"></script>
+    <script>
+    // Blood Requests Panel
+    const masterKey = localStorage.getItem('masterKey');
+
+    document.getElementById('refreshBloodRequests')?.addEventListener('click', loadBloodRequests);
+    async function loadBloodRequests() {
+        const tbody = document.getElementById('bloodRequestsBody');
+        tbody.innerHTML = '<tr><td colspan="8" class="p-4 text-slate-500">Loading...</td></tr>';
+        const res = await fetch('/api/superadmin/blood-requests', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ masterKey })
+        });
+        const data = await res.json();
+        if (!data.success) { tbody.innerHTML = `<tr><td colspan="8" class="p-4 text-red-500">${data.message}</td></tr>`; return; }
+        tbody.innerHTML = data.data.map(r => `
+            <tr class="border-b hover:bg-slate-50">
+                <td class="p-3">#${r.id}</td>
+                <td class="p-3"><span class="font-bold text-red-600">${r.blood_group}</span></td>
+                <td class="p-3">${r.location || r.district || ''}</td>
+                <td class="p-3">${r.hospital_name}</td>
+                <td class="p-3"><span class="px-2 py-0.5 rounded text-xs font-bold ${r.status === 'Active' ? 'bg-green-100 text-green-700' : r.status === 'Fulfilled' ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-600'}">${r.status}</span></td>
+                <td class="p-3">${r.total_donors_queued} (${r.rejected_count} rejected)</td>
+                <td class="p-3 text-green-600 font-semibold">${r.accepted_donor_name || '—'}</td>
+                <td class="p-3 text-slate-500">${new Date(r.created_at).toLocaleString('bn-BD')}</td>
+            </tr>
+        `).join('') || '<tr><td colspan="8" class="p-4 text-slate-500">No requests found.</td></tr>';
+    }
+
+    // Test Data Panel
+    document.getElementById('seedTestDonorsBtn')?.addEventListener('click', async () => {
+        const btn = document.getElementById('seedTestDonorsBtn');
+        const result = document.getElementById('seedResult');
+        btn.textContent = 'Creating donors...';
+        btn.disabled = true;
+        const res = await fetch('/api/superadmin/seed-test-donors', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ masterKey })
+        });
+        const data = await res.json();
+        result.classList.remove('hidden');
+        result.textContent = data.message;
+        btn.textContent = '🧪 Create 15 Test Donors Now';
+        btn.disabled = false;
+        loadDonorsView();
+    });
+
+    document.getElementById('refreshDonorsView')?.addEventListener('click', loadDonorsView);
+    async function loadDonorsView() {
+        const tbody = document.getElementById('donorsViewBody');
+        tbody.innerHTML = '<tr><td colspan="8" class="p-4 text-slate-500">Loading...</td></tr>';
+        const res = await fetch('/api/superadmin/donors-view', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ masterKey })
+        });
+        const data = await res.json();
+        if (!data.success) { tbody.innerHTML = `<tr><td colspan="8" class="p-4 text-red-500">${data.message}</td></tr>`; return; }
+        tbody.innerHTML = data.data.map(d => `
+            <tr class="border-b hover:bg-slate-50">
+                <td class="p-3 font-medium">${d.name}</td>
+                <td class="p-3"><span class="font-bold text-red-600">${d.blood_group}</span></td>
+                <td class="p-3 text-slate-500">${d.location || ''}</td>
+                <td class="p-3"><span class="px-2 py-0.5 rounded text-xs font-bold ${d.status === 'Available' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'}">${d.status}</span></td>
+                <td class="p-3">${d.has_fcm_token ? '<span class="text-green-600">✅</span>' : '<span class="text-slate-400">❌</span>'}</td>
+                <td class="p-3">${d.total_requests}</td>
+                <td class="p-3 text-green-600">${d.accepted_requests}</td>
+                <td class="p-3 text-amber-600">${d.pending_requests}</td>
+            </tr>
+        `).join('') || '<tr><td colspan="8" class="p-4 text-slate-500">No donors found.</td></tr>';
+    }
+    </script>
+</body>
+</html>

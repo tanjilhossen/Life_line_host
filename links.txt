@@ -1,0 +1,55 @@
+LifeLine Project Links
+======================
+
+Base URL:
+http://localhost:3000
+
+Public Home:
+http://localhost:3000/
+
+Apply Page:
+http://localhost:3000/apply.html
+
+User Login Page:
+http://localhost:3000/login.html
+
+Donor Dashboard:
+http://localhost:3000/donor-dashboard.html
+
+Hospital / Medical Dashboard:
+http://localhost:3000/hospital-dashboard.html
+
+Super Admin Login:
+http://localhost:3000/system-root.html
+
+Super Admin Dashboard:
+http://localhost:3000/master-dashboard.html
+
+How To Use
+==========
+
+1. New donor or medical/hospital user apply korbe:
+   http://localhost:3000/apply.html
+
+2. Super admin login kore pending application approve/reject korbe:
+   
+
+3. Application approve hole user login korbe:
+   http://localhost:3000/login.html
+
+4. Donor login korle jabe:
+   http://localhost:3000/donor-dashboard.html
+
+5. Hospital / medical login korle jabe:
+   http://localhost:3000/hospital-dashboard.html
+
+Super Admin Login Info
+======================
+
+Root Username:
+admin
+
+Master Key:
+Check your .env SUPER_ADMIN_KEY.
+If not set, default is:
+TanjilBoss@2026

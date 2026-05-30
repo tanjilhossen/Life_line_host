@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LifeLine - Secure Login</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 h-screen flex items-center justify-center">
+
+    <div class="bg-white p-8 rounded-xl shadow-xl w-full max-w-md border-t-4 border-red-600">
+        <div class="text-center mb-8">
+            <h1 class="text-3xl font-bold text-gray-800 tracking-wider">🩸 LifeLine</h1>
+            <p class="text-gray-500 mt-2">সিকিউর লগিন প্যানেল</p>
+        </div>
+
+        <form id="loginForm" class="space-y-5">
+            <div>
+                <label class="block text-gray-700 font-semibold mb-1">অ্যাকাউন্টের ধরন</label>
+                <select id="userRole" class="w-full p-3 border border-gray-300 rounded focus:outline-none focus:border-red-500 bg-gray-50">
+                    <option value="donor">রক্তদাতা (Donor)</option>
+                    <option value="hospital">হসপিটাল অ্যাডমিন</option>
+                    
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-gray-700 font-semibold mb-1">ইমেইল / ইউজারনেম</label>
+                <input type="text" id="username" required class="w-full p-3 border border-gray-300 rounded focus:outline-none focus:border-red-500" placeholder="আপনার ইমেইল বা ইউজারনেম দিন">
+            </div>
+
+            <div>
+                <label class="block text-gray-700 font-semibold mb-1">পাসওয়ার্ড বা মাস্টার-কি</label>
+                <input type="password" id="password" required class="w-full p-3 border border-gray-300 rounded focus:outline-none focus:border-red-500" placeholder="••••••••">
+            </div>
+
+            <button type="submit" class="w-full bg-red-600 text-white font-bold py-3 rounded hover:bg-red-700 transition shadow-lg text-lg">
+                লগিন করুন
+            </button>
+        </form>
+        
+        <div class="text-center mt-6">
+            <a href="/apply.html" class="text-sm text-red-600 hover:underline font-semibold">নতুন অ্যাকাউন্টের জন্য আবেদন করুন</a>
+            <span class="text-gray-300 mx-2">|</span>
+            <a href="/" class="text-sm text-blue-600 hover:underline">← হোমপেজে ফিরে যান</a>
+        </div>
+    </div>
+
+    <script src="/js/notify.js"></script>
+    <script src="/js/login.js"></script>
+</body>
+</html>

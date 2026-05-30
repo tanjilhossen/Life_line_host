@@ -1,0 +1,822 @@
+<!DOCTYPE html>
+<html lang="bn">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>জরুরি রক্তের আবেদন — LifeLine</title>
+    <meta name="description"
+        content="LifeLine — জরুরি রক্তের জন্য এখনই আবেদন করুন। কাছের রক্তদাতাদের কাছে ইমার্জেন্সি অ্যালার্ট পাঠান।">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@300;400;500;600;700&family=Inter:wght@400;600;700;800;900&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="https://api.mapbox.com/mapbox-gl-js/v3.3.0/mapbox-gl.css">
+    <style>
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        :root {
+            --red: #e11d48;
+            --red-dark: #be123c;
+            --red-light: #fff1f2;
+            --red-glow: rgba(225, 29, 72, 0.3);
+            --blue: #1d4ed8;
+            --blue-light: #eff6ff;
+            --dark: #0f172a;
+            --gray: #64748b;
+            --border: #e2e8f0;
+            --white: #ffffff;
+            --bg: #f8fafc;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: 'Hind Siliguri', 'Inter', sans-serif;
+            background: var(--bg);
+            color: var(--dark);
+            min-height: 100vh;
+        }
+
+        /* NAV */
+        nav {
+            background: linear-gradient(135deg, #7f1d1d 0%, #be123c 50%, #e11d48 100%);
+            box-shadow: 0 4px 24px rgba(190, 18, 60, 0.4);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .nav-inner {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 0 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            height: 66px;
+        }
+
+        .nav-logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+        }
+
+        .logo-icon {
+            width: 38px;
+            height: 38px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .logo-text {
+            font-family: 'Inter', sans-serif;
+            font-size: 1.45rem;
+            font-weight: 900;
+            color: #fff;
+        }
+
+        .nav-back {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(255, 255, 255, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            color: #fff;
+            border-radius: 10px;
+            padding: 8px 16px;
+            font-size: 0.88rem;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all .2s;
+            font-family: 'Hind Siliguri', sans-serif;
+        }
+
+        .nav-back:hover {
+            background: rgba(255, 255, 255, 0.25);
+        }
+
+        /* PAGE HEADER */
+        .page-header {
+            background: linear-gradient(135deg, #7f1d1d 0%, #be123c 60%, #e11d48 100%);
+            color: #fff;
+            text-align: center;
+            padding: 48px 1.5rem 70px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .page-header::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/svg%3E");
+        }
+
+        .page-header-icon {
+            font-size: 3.5rem;
+            margin-bottom: 14px;
+            display: block;
+            position: relative;
+        }
+
+        .page-header h1 {
+            font-family: 'Hind Siliguri', sans-serif;
+            font-size: clamp(1.7rem, 4vw, 2.4rem);
+            font-weight: 700;
+            position: relative;
+        }
+
+        .page-header p {
+            font-size: 1rem;
+            opacity: .85;
+            margin-top: 10px;
+            position: relative;
+            max-width: 500px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        /* MAIN CONTAINER */
+        .main-wrap {
+            max-width: 780px;
+            margin: 20px auto 60px;
+            padding: 0 1.5rem;
+        }
+
+        /* CARD */
+        .card {
+            background: var(--white);
+            border-radius: 24px;
+            box-shadow: 0 8px 40px rgba(15, 23, 42, 0.1), 0 2px 8px rgba(225, 29, 72, 0.08);
+            overflow: hidden;
+        }
+
+        .card-header {
+            padding: 22px 28px 18px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .card-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 14px;
+            background: var(--red-light);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.4rem;
+            flex-shrink: 0;
+        }
+
+        .card-title {
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: var(--dark);
+        }
+
+        .card-sub {
+            font-size: 0.82rem;
+            color: var(--gray);
+            margin-top: 2px;
+        }
+
+        .card-body {
+            padding: 28px;
+        }
+
+        /* FORM */
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: var(--dark);
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1.5px solid var(--border);
+            border-radius: 12px;
+            font-size: 0.98rem;
+            font-family: inherit;
+            background: var(--bg);
+            color: var(--dark);
+            transition: border-color .2s, box-shadow .2s;
+            appearance: none;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--red);
+            box-shadow: 0 0 0 3px rgba(225, 29, 72, 0.1);
+            background: #fff;
+        }
+
+        select.form-control {
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 14px center;
+            padding-right: 44px;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        /* BLOOD GROUP GRID */
+        .blood-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin-top: 8px;
+        }
+
+        .blood-btn {
+            padding: 12px 6px;
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            background: var(--bg);
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all .2s;
+            color: var(--dark);
+            font-family: inherit;
+        }
+
+        .blood-btn:hover {
+            border-color: var(--red);
+            color: var(--red);
+            background: var(--red-light);
+        }
+
+        .blood-btn.selected {
+            border-color: var(--red);
+            background: var(--red);
+            color: #fff;
+            box-shadow: 0 4px 12px var(--red-glow);
+        }
+
+        /* MAP */
+        .map-wrapper {
+            border-radius: 14px;
+            overflow: hidden;
+            border: 1.5px solid var(--border);
+            position: relative;
+        }
+
+        #requestMap {
+            width: 100%;
+            height: 260px;
+        }
+
+        .mapboxgl-ctrl-logo,
+        .mapboxgl-ctrl-attrib {
+            display: none !important;
+        }
+
+        .map-search-wrap {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            right: 50px;
+            z-index: 10;
+        }
+
+        .map-search-input {
+            width: 100%;
+            padding: 10px 16px;
+            border-radius: 10px;
+            border: 1.5px solid #e2e8f0;
+            font-size: 0.88rem;
+            background: #fff;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.12);
+            outline: none;
+            font-family: inherit;
+        }
+
+        .map-search-results {
+            background: #fff;
+            border-radius: 10px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+            margin-top: 4px;
+            max-height: 200px;
+            overflow-y: auto;
+            display: none;
+        }
+
+        .map-search-results.show {
+            display: block;
+        }
+
+        .map-search-item {
+            padding: 9px 14px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            border-bottom: 1px solid #f1f5f9;
+            transition: background .15s;
+        }
+
+        .map-search-item:hover {
+            background: #f8fafc;
+        }
+
+        .map-coords {
+            font-size: 0.82rem;
+            color: var(--gray);
+            margin-top: 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        /* LOCATION BUTTON */
+        .btn-location {
+            background: linear-gradient(135deg, var(--blue), #3b82f6);
+            color: #fff;
+            border: none;
+            border-radius: 20px;
+            padding: 9px 18px;
+            font-size: 0.85rem;
+            font-weight: 700;
+            font-family: inherit;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all .2s;
+            box-shadow: 0 4px 12px rgba(29, 78, 216, 0.3);
+        }
+
+        .btn-location:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 18px rgba(29, 78, 216, 0.4);
+        }
+
+        .btn-location svg {
+            width: 16px;
+            height: 16px;
+        }
+
+        /* SUBMIT */
+        .btn-submit {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, var(--red-dark), var(--red));
+            color: #fff;
+            border: none;
+            border-radius: 14px;
+            font-size: 1.05rem;
+            font-weight: 700;
+            font-family: inherit;
+            cursor: pointer;
+            transition: all .2s;
+            box-shadow: 0 6px 20px var(--red-glow);
+            margin-top: 8px;
+        }
+
+        .btn-submit:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 28px var(--red-glow);
+        }
+
+        .btn-submit:disabled {
+            opacity: 0.65;
+            transform: none;
+            cursor: not-allowed;
+        }
+
+        /* INFO BADGE */
+        .info-badge {
+            background: #fff7ed;
+            border: 1px solid #fed7aa;
+            border-radius: 12px;
+            padding: 14px 18px;
+            font-size: 0.88rem;
+            color: #92400e;
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            margin-bottom: 24px;
+        }
+
+        /* DIVIDER */
+        .form-divider {
+            border: none;
+            border-top: 1px solid var(--border);
+            margin: 24px 0;
+        }
+
+        /* Responsive */
+        @media (max-width: 600px) {
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+
+            .blood-grid {
+                grid-template-columns: repeat(4, 1fr);
+                gap: 7px;
+            }
+
+            .card-body {
+                padding: 20px;
+            }
+
+            .main-wrap {
+                margin-top: 20px;
+            }
+
+            #requestMap {
+                height: 220px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- NAV -->
+    <nav>
+        <div class="nav-inner">
+            <a href="/" class="nav-logo">
+                <div class="logo-icon">🩸</div>
+                <span class="logo-text">LifeLine</span>
+            </a>
+            <a href="/" class="nav-back">← হোমে ফিরুন</a>
+        </div>
+    </nav>
+
+    <!-- PAGE HEADER -->
+    <div class="page-header">
+        <span class="page-header-icon">🚨</span>
+        <h1>জরুরি রক্তের আবেদন</h1>
+        <p>নিচের ফর্মটি পূরণ করুন — কাছের সকল ডোনারদের কাছে অটোমেটিক অ্যালার্ট যাবে।</p>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <div class="main-wrap">
+        <div class="card">
+            <div class="card-header">
+                <div class="card-icon">🩸</div>
+                <div>
+                    <div class="card-title">ইমার্জেন্সি রক্তের অনুরোধ</div>
+                    <div class="card-sub">সব তথ্য সঠিকভাবে পূরণ করুন</div>
+                </div>
+            </div>
+            <div class="card-body">
+
+                <div class="info-badge">
+                    ⚡ আপনার আবেদন জমা হওয়ার সাথে সাথে কাছের সকল উপলব্ধ ডোনারদের কাছে পুশ নোটিফিকেশন পাঠানো হবে।
+                </div>
+
+                <form id="emergencyForm">
+
+                    <!-- Blood Group -->
+                    <div class="form-group">
+                        <label class="form-label">🩸 রক্তের গ্রুপ বেছে নিন</label>
+                        <div class="blood-grid">
+                            <button type="button" class="blood-btn selected" data-group="A+">A+</button>
+                            <button type="button" class="blood-btn" data-group="B+">B+</button>
+                            <button type="button" class="blood-btn" data-group="O+">O+</button>
+                            <button type="button" class="blood-btn" data-group="AB+">AB+</button>
+                            <button type="button" class="blood-btn" data-group="A-">A−</button>
+                            <button type="button" class="blood-btn" data-group="B-">B−</button>
+                            <button type="button" class="blood-btn" data-group="O-">O−</button>
+                            <button type="button" class="blood-btn" data-group="AB-">AB−</button>
+                        </div>
+                        <input type="hidden" id="bloodGroup" value="A+">
+                    </div>
+
+                    <hr class="form-divider">
+
+                    <!-- District / Upazila -->
+                    <div class="form-group">
+                        <label class="form-label">📍 জেলা এবং উপজেলা নির্বাচন করুন</label>
+                        <div class="form-row">
+                            <select id="location" class="form-control"
+                                onchange="populateUpazilas('location','upazila')">
+                                <option value="" disabled selected>জেলা নির্বাচন করুন</option>
+                            </select>
+                            <select id="upazila" class="form-control" disabled>
+                                <option value="" disabled selected>উপজেলা নির্বাচন করুন</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Hospital Name -->
+                    <div class="form-group">
+                        <label class="form-label">🏥 মেডিকেল / হাসপাতালের নাম</label>
+                        <input type="text" id="hospitalName" class="form-control"
+                            placeholder="যেমন: ঢাকা মেডিকেল কলেজ হাসপাতাল" required>
+                    </div>
+
+                    <!-- Time & Disease -->
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">⏰ কখন রক্ত লাগবে?</label>
+                            <input type="text" id="neededTime" class="form-control" placeholder="যেমন: আজ বিকেল ৪টা"
+                                required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">🩺 রোগীর ধরন / রোগ</label>
+                            <input type="text" id="patientDisease" class="form-control"
+                                placeholder="যেমন: সিজার, এক্সিডেন্ট" required>
+                        </div>
+                    </div>
+
+                    <!-- Contact -->
+                    <div class="form-group">
+                        <label class="form-label">📞 যোগাযোগের মোবাইল নম্বর</label>
+                        <input type="tel" id="contactNumber" class="form-control" placeholder="০১৭XXXXXXXX" required>
+                    </div>
+
+                    <hr class="form-divider">
+
+                    <!-- Map -->
+                    <div class="form-group">
+                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+                            <label class="form-label" style="margin:0;">📍 ম্যাপে সঠিক অবস্থান চিহ্নিত করুন</label>
+                            <button type="button" id="findMyLocationBtn" class="btn-location">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                                    stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                        d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                        d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                                </svg>
+                                আমার অবস্থান
+                            </button>
+                        </div>
+                        <div class="map-wrapper">
+                            <div class="map-search-wrap">
+                                <input type="text" id="reqMapSearch" class="map-search-input"
+                                    placeholder="🔍 জায়গা খুঁজুন...">
+                                <div class="map-search-results" id="reqSearchResults"></div>
+                            </div>
+                            <div id="requestMap"></div>
+                        </div>
+                        <div class="map-coords" id="coordsDisplay">
+                            <span>📌</span> <span id="coordsText">ম্যাপে ক্লিক করে অবস্থান সেট করুন</span>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn-submit" id="submitBtn">
+                        🚨 ইমার্জেন্সি অ্যালার্ট পাঠান
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://api.mapbox.com/mapbox-gl-js/v3.3.0/mapbox-gl.js"></script>
+    <script src="/js/notify.js"></script>
+    <script src="/js/bd-districts.js"></script>
+    <script src="/js/mapbox-utils.js"></script>
+    <script>
+        // Blood group selector
+        (function () {
+            const bloodBtns = document.querySelectorAll('.blood-btn');
+            const bloodInput = document.getElementById('bloodGroup');
+            bloodBtns.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    bloodBtns.forEach(b => b.classList.remove('selected'));
+                    btn.classList.add('selected');
+                    bloodInput.value = btn.dataset.group;
+                });
+            });
+            populateDivisions('location');
+        })();
+    </script>
+    <script>
+        // Maps Init
+        (function () {
+            mapboxgl.accessToken = MAPBOX_TOKEN;
+
+            const reqMap = new mapboxgl.Map({
+                container: 'requestMap',
+                style: 'mapbox://styles/mapbox/streets-v12',
+                center: [90.3563, 23.685],
+                zoom: 7,
+                maxBounds: [[85, 19], [94, 28]]
+            });
+            reqMap.addControl(new mapboxgl.NavigationControl(), 'top-right');
+
+            let reqMarkerEl = null;
+            window.selectedRequestLocation = null;
+
+            function placeReqMarker(lngLat) {
+                if (reqMarkerEl) reqMarkerEl.remove();
+                const el = document.createElement('div');
+                el.style.cssText = 'width:24px;height:24px;background:#e11d48;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.35);';
+                reqMarkerEl = new mapboxgl.Marker({ element: el, anchor: 'bottom' }).setLngLat(lngLat).addTo(reqMap);
+            }
+
+            async function onMapPick(lngLat) {
+                const lat = lngLat.lat.toFixed(6), lng = lngLat.lng.toFixed(6);
+                window.selectedRequestLocation = { latitude: Number(lat), longitude: Number(lng) };
+                document.getElementById('coordsText').textContent = `অক্ষাংশ: ${Number(lat).toFixed(5)}, দ্রাঘিমাংশ: ${Number(lng).toFixed(5)}`;
+                placeReqMarker([lngLat.lng, lngLat.lat]);
+                const geo = await mapboxReverseGeocode(Number(lat), Number(lng));
+                autoFillFromGeocode('location', 'upazila', geo);
+            }
+
+            reqMap.on('click', e => onMapPick(e.lngLat));
+
+            document.getElementById('findMyLocationBtn').addEventListener('click', () => {
+                const btn = document.getElementById('findMyLocationBtn');
+                const orig = btn.innerHTML;
+                btn.innerHTML = '⏳ খুঁজছে...'; btn.disabled = true;
+                
+                getGeolocationWithIPFallback().then(
+                    async coords => {
+                        const lngLat = { lat: coords.lat, lng: coords.lng };
+                        reqMap.flyTo({ center: [lngLat.lng, lngLat.lat], zoom: 16 });
+                        await onMapPick(lngLat);
+                        btn.innerHTML = orig; btn.disabled = false;
+                    }
+                ).catch(() => {
+                    showToast('লোকেশন পাওয়া যায়নি। অনুগ্রহ করে ম্যাপে ম্যানুয়ালি ক্লিক করুন।', 'warning');
+                    btn.innerHTML = orig; btn.disabled = false;
+                });
+            });
+
+            // Silent location detection on page load to fly to user position
+            getGeolocationWithIPFallback().then(async coords => {
+                const { lat, lng } = coords;
+                if (lat >= 20.5 && lat <= 26.8 && lng >= 87.9 && lng <= 92.8) {
+                    reqMap.flyTo({ center: [lng, lat], zoom: 14 });
+                    await onMapPick({ lat, lng });
+                }
+            }).catch(() => {});
+
+            // Map search
+            let st;
+            const si = document.getElementById('reqMapSearch'), sr = document.getElementById('reqSearchResults');
+            if (si) {
+                si.addEventListener('input', () => {
+                    clearTimeout(st);
+                    const q = si.value.trim();
+                    if (q.length < 2) { sr.innerHTML = ''; sr.classList.remove('show'); return; }
+                    st = setTimeout(async () => {
+                        const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(q)}.json?access_token=${MAPBOX_TOKEN}&country=BD&language=en&limit=5`;
+                        const res = await fetch(url), data = await res.json();
+                        sr.innerHTML = '';
+                        if (data.features && data.features.length) {
+                            data.features.forEach(f => {
+                                const item = document.createElement('div');
+                                item.className = 'map-search-item';
+                                item.textContent = f.place_name;
+                                item.addEventListener('click', async () => {
+                                    const [lng, lat] = f.center;
+                                    reqMap.flyTo({ center: [lng, lat], zoom: 14 });
+                                    await onMapPick({ lat, lng });
+                                    si.value = f.place_name; sr.classList.remove('show');
+                                });
+                                sr.appendChild(item);
+                            });
+                            sr.classList.add('show');
+                        }
+                    }, 350);
+                });
+                document.addEventListener('click', e => { if (!si.contains(e.target)) sr.classList.remove('show'); });
+            }
+
+            // Load available donors and display on map
+            async function loadDonorsToMap() {
+                try {
+                    const res = await fetch('/api/donors');
+                    const data = await res.json();
+                    if (data.success) {
+                        data.data.forEach(donor => {
+                            const el = document.createElement('div');
+                            const inner = document.createElement('div');
+                            inner.innerHTML = '🩸';
+                            inner.style.cssText = 'font-size:20px;cursor:pointer;filter:drop-shadow(0 2px 4px rgba(0,0,0,.3));transition:transform .2s; transform-origin: center center;';
+                            inner.title = donor.name;
+                            inner.addEventListener('mouseenter', () => inner.style.transform = 'scale(1.3)');
+                            inner.addEventListener('mouseleave', () => inner.style.transform = 'scale(1)');
+                            el.appendChild(inner);
+                            
+                            const pop = new mapboxgl.Popup({ offset: 10, closeButton: false }).setHTML(`
+                                <div style="font-family:sans-serif;min-width:140px;padding:6px">
+                                    <strong style="color:#be123c">${donor.name}</strong><br>
+                                    <span style="color:#64748b;font-size:.83em;font-weight:bold;">🩸 ${donor.blood_group}</span><br>
+                                    <span style="color:#64748b;font-size:.83em">📍 ${donor.location}</span>
+                                </div>
+                            `);
+                            new mapboxgl.Marker({ element: el })
+                                .setLngLat([parseFloat(donor.longitude), parseFloat(donor.latitude)])
+                                .setPopup(pop)
+                                .addTo(reqMap);
+                        });
+                    }
+                } catch (e) {
+                    console.error('Failed to load donors to map:', e);
+                }
+            }
+            loadDonorsToMap();
+        })();
+    </script>
+    <script>
+        // Form Submit
+        const emergencyForm = document.getElementById('emergencyForm');
+        if (emergencyForm) {
+            emergencyForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const bloodGroup = document.getElementById('bloodGroup').value;
+                const district = document.getElementById('location').value;
+                const upazila = document.getElementById('upazila').value || '';
+                const location = upazila ? `${upazila}, ${district}` : district;
+                const hospitalName = document.getElementById('hospitalName').value.trim();
+                const neededTime = document.getElementById('neededTime').value.trim();
+                const patientDisease = document.getElementById('patientDisease').value.trim();
+                const contactNumber = document.getElementById('contactNumber').value.trim();
+                const selectedLocation = window.selectedRequestLocation || {};
+                const submitBtn = document.getElementById('submitBtn');
+                const originalText = submitBtn.innerHTML;
+
+                if (!district || !selectedLocation.latitude || !selectedLocation.longitude) {
+                    await showPopup('জেলা নির্বাচন করুন এবং ম্যাপে সঠিক অবস্থান চিহ্নিত করুন।', 'warning');
+                    return;
+                }
+
+                if (!hospitalName || hospitalName.length < 3) {
+                    await showPopup('হাসপাতালের নাম সঠিকভাবে দিন (কমপক্ষে ৩ অক্ষর)।', 'warning');
+                    return;
+                }
+
+                if (!neededTime) {
+                    await showPopup('রক্ত প্রদানের সময় লিখুন।', 'warning');
+                    return;
+                }
+
+                if (!patientDisease || patientDisease.length < 2) {
+                    await showPopup('রোগীর রোগ বা কারণ সঠিকভাবে লিখুন (কমপক্ষে ২ অক্ষর)।', 'warning');
+                    return;
+                }
+
+                let cleanPhone = contactNumber.replace(/\D/g, '');
+                if (cleanPhone.startsWith('880')) {
+                    cleanPhone = cleanPhone.substring(2);
+                }
+                const bdRegex = /^01[3-9]\d{8}$/;
+                if (!bdRegex.test(cleanPhone)) {
+                    await showPopup('একটি সঠিক বাংলাদেশী মোবাইল নাম্বার দিন (যেমন: 017XXXXXXXX)।', 'warning');
+                    return;
+                }
+
+                submitBtn.innerHTML = '⏳ অ্যালার্ট পাঠানো হচ্ছে...'; submitBtn.disabled = true;
+                try {
+                    const response = await fetch('/api/emergency', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            bloodGroup, district, upazila, location,
+                            latitude: selectedLocation.latitude, longitude: selectedLocation.longitude,
+                            hospitalName, neededTime, patientDisease, contactNumber: cleanPhone
+                        })
+                    });
+                    const result = await response.json();
+                    if (result.success && result.trackingUrl) { window.location.href = result.trackingUrl; return; }
+                    await showPopup(result.message, 'warning');
+                } catch (error) {
+                    await showPopup('সার্ভারে সমস্যা হয়েছে, একটু পর আবার চেষ্টা করুন।', 'error');
+                } finally {
+                    submitBtn.innerHTML = originalText; submitBtn.disabled = false;
+                }
+            });
+        }
+    </script>
+</body>
+
+</html>

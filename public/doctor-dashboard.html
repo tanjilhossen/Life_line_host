@@ -1,0 +1,1120 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LifeLine - Doctor Dashboard</title>
+    <link rel="stylesheet" href="css/doctor.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .login-container {
+            max-width: 400px;
+            margin: 4rem auto;
+            background: var(--card-bg);
+            padding: 2rem;
+            border-radius: 1rem;
+            box-shadow: var(--shadow-lg);
+        }
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="header-container">
+            <a href="index.html" class="logo">
+                <i class="fas fa-user-md"></i> Doctor Portal
+            </a>
+            <div class="nav-links" id="logoutNav" style="display:none;">
+                <a href="#" onclick="logout()"><i class="fas fa-sign-out-alt"></i> Logout</a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Login View -->
+    <div class="container" id="loginView">
+        <div class="login-container">
+            <h2 style="text-align:center; margin-bottom:1.5rem;">ডাক্তার লগিন</h2>
+            <form id="loginForm" onsubmit="handleLogin(event)">
+                <div class="form-group">
+                    <label>ইউজারনেম</label>
+                    <input type="text" id="lUsername" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label>পাসওয়ার্ড</label>
+                    <input type="password" id="lPassword" class="form-control" required>
+                </div>
+                <button type="submit" class="btn-book" id="btnLogin">লগিন করুন</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Dashboard View -->
+    <div class="container hidden" id="dashboardView">
+        <div class="dashboard-grid">
+            <div class="sidebar">
+                <div style="text-align:center; margin-bottom:2rem;">
+                    <div class="avatar" style="margin: 0 auto 1rem;">D</div>
+                    <h3 id="docNameDisplay">Doctor Name</h3>
+                    <p class="text-muted" style="font-size:0.9rem;" id="docSpecDisplay">Specialty</p>
+                </div>
+                <ul class="sidebar-menu">
+                    <li><a href="#" class="active" onclick="switchTab('appointments', this)"><i class="far fa-calendar-check"></i> অ্যাপয়েন্টমেন্টস</a></li>
+                    <li><a href="#" onclick="switchTab('live-tracking', this)"><i class="fas fa-satellite-dish"></i> লাইভ ট্র্যাকিং <span class="badge bg-danger" style="font-size:0.6rem; padding:0.2rem 0.4rem; vertical-align:top; animation: pulse 2s infinite;">LIVE</span></a></li>
+                    <li><a href="#" onclick="switchTab('chambers', this)"><i class="fas fa-hospital"></i> চেম্বার ম্যানেজমেন্ট</a></li>
+                    <li><a href="#" onclick="switchTab('schedule', this)"><i class="fas fa-calendar-alt"></i> শিডিউল পরিবর্তন</a></li>
+                    <li><a href="#" onclick="switchTab('leaves', this)"><i class="fas fa-calendar-times"></i> ছুটি / অফ-ডে</a></li>
+                    <li><a href="#" onclick="switchTab('overrides', this)"><i class="fas fa-calendar-day"></i> তারিখ অনুযায়ী ক্যাপাসিটি</a></li>
+                    <li><a href="#" onclick="switchTab('profile', this)"><i class="fas fa-user-edit"></i> প্রোফাইল আপডেট</a></li>
+                </ul>
+            </div>
+
+            <div class="main-content">
+                <!-- Appointments Tab -->
+                <div id="tab-appointments">
+                    <h2 style="margin-bottom:1.5rem;">আপনার সিরিয়াল / অ্যাপয়েন্টমেন্টস</h2>
+                    <div class="dash-card" style="margin-bottom: 2rem; border-left: 4px solid var(--primary-color);">
+                        <div style="display:flex; gap:1rem; align-items:flex-end;">
+                            <div class="form-group" style="margin:0; flex:1;">
+                                <label>তারিখ নির্বাচন করুন</label>
+                                <input type="date" id="filterAppDate" class="form-control" onchange="filterAppointments()">
+                            </div>
+                            <button class="btn-book" onclick="document.getElementById('filterAppDate').value=''; filterAppointments()" style="width:auto; background:var(--danger)">সব দেখুন</button>
+                        </div>
+                    </div>
+                    
+                    <!-- Grouped Boxes -->
+                    <div style="display: flex; flex-direction: column; gap: 2rem;">
+                        
+                        <!-- Box 1: Waiting / Confirmed -->
+                        <div class="dash-card" style="border-left: 5px solid #2563EB;">
+                            <h3 style="color: #2563EB; margin-bottom: 1rem; display:flex; align-items:center; gap:0.5rem;">
+                                <i class="fas fa-clock"></i> অপেক্ষমান রোগী (Waiting List)
+                                <span class="badge bg-primary" id="countPending" style="font-size:0.9rem; margin-left:auto; background:#2563EB; color:white; padding:0.2rem 0.6rem; border-radius:10px;">0</span>
+                            </h3>
+                            <div class="table-responsive">
+                                <table class="app-group-table" id="tablePending">
+                                    <thead>
+                                        <tr>
+                                            <th>তারিখ ও সময়</th>
+                                            <th>সিরিয়াল</th>
+                                            <th>রোগীর নাম</th>
+                                            <th>বয়স/লিঙ্গ</th>
+                                            <th>সমস্যা</th>
+                                            <th>পেমেন্ট</th>
+                                            <th>অ্যাকশন</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr><td colspan="7" style="text-align:center; color:#94a3b8; padding: 2rem 0;">কোনো অপেক্ষমান রোগী নেই।</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        
+                        <!-- Box 2: Completed -->
+                        <div class="dash-card" style="border-left: 5px solid #16A34A;">
+                            <h3 style="color: #16A34A; margin-bottom: 1rem; display:flex; align-items:center; gap:0.5rem;">
+                                <i class="fas fa-check-circle"></i> দেখা শেষ (Checked Patients)
+                                <span class="badge bg-success" id="countCompleted" style="font-size:0.9rem; margin-left:auto; background:#16A34A; color:white; padding:0.2rem 0.6rem; border-radius:10px;">0</span>
+                            </h3>
+                            <div class="table-responsive">
+                                <table class="app-group-table" id="tableCompleted">
+                                    <thead>
+                                        <tr>
+                                            <th>তারিখ ও সময়</th>
+                                            <th>সিরিয়াল</th>
+                                            <th>রোগীর নাম</th>
+                                            <th>বয়স/লিঙ্গ</th>
+                                            <th>সমস্যা</th>
+                                            <th>পেমেন্ট</th>
+                                            <th>অ্যাকশন</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr><td colspan="7" style="text-align:center; color:#94a3b8; padding: 2rem 0;">কোনো রোগী দেখা শেষ হয়নি।</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        
+                        <!-- Box 3: Cancelled -->
+                        <div class="dash-card" style="border-left: 5px solid #DC2626; opacity: 0.85;">
+                            <h3 style="color: #DC2626; margin-bottom: 1rem; display:flex; align-items:center; gap:0.5rem;">
+                                <i class="fas fa-times-circle"></i> বাতিলকৃত সিরিয়াল (Cancelled list)
+                                <span class="badge bg-danger" id="countCancelled" style="font-size:0.9rem; margin-left:auto; background:#DC2626; color:white; padding:0.2rem 0.6rem; border-radius:10px;">0</span>
+                            </h3>
+                            <div class="table-responsive">
+                                <table class="app-group-table" id="tableCancelled">
+                                    <thead>
+                                        <tr>
+                                            <th>তারিখ ও সময়</th>
+                                            <th>সিরিয়াল</th>
+                                            <th>রোগীর নাম</th>
+                                            <th>বয়স/লিঙ্গ</th>
+                                            <th>সমস্যা</th>
+                                            <th>পেমেন্ট</th>
+                                            <th>অ্যাকশন</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr><td colspan="7" style="text-align:center; color:#94a3b8; padding: 2rem 0;">কোনো বাতিলকৃত অ্যাপয়েন্টমেন্ট নেই।</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Live Tracking Tab -->
+                <div id="tab-live-tracking" class="hidden">
+                    <h2 style="margin-bottom:1.5rem;">লাইভ সিরিয়াল ট্র্যাকিং</h2>
+                    <div class="dash-card" style="margin-bottom: 2rem; border-left: 4px solid var(--danger);">
+                        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:1rem;">
+                            <div class="form-group">
+                                <label>চেম্বার নির্বাচন করুন</label>
+                                <select id="ltChamber" class="form-control" onchange="startLiveTracking()">
+                                    <option value="">লোড হচ্ছে...</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>তারিখ নির্বাচন করুন</label>
+                                <input type="date" id="ltDate" class="form-control" onchange="startLiveTracking()">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="dash-card" id="ltDisplay" style="display:none; text-align:center;">
+                        <!-- Live grid goes here -->
+                    </div>
+                </div>
+
+                <!-- Chambers Tab -->
+                <div id="tab-chambers" class="hidden">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
+                        <h2>আপনার চেম্বারসমূহ</h2>
+                        <button class="btn-book" style="width:auto; padding: 0.5rem 1rem;" onclick="document.getElementById('addChamberForm').classList.toggle('hidden')">
+                            <i class="fas fa-plus"></i> নতুন চেম্বার
+                        </button>
+                    </div>
+
+                    <div class="dash-card hidden" id="addChamberForm" style="margin-bottom: 2rem; border-left: 4px solid var(--primary-color);">
+                        <form onsubmit="addChamber(event)">
+                            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:1rem;">
+                                <div class="form-group">
+                                    <label>চেম্বার/ক্লিনিকের নাম *</label>
+                                    <input type="text" id="cName" class="form-control" required>
+                                </div>
+                                <div class="form-group">
+                                    <label>ঠিকানা *</label>
+                                    <input type="text" id="cLoc" class="form-control" required>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>বসার দিনসমূহ (উদাঃ শনি, সোম, বুধ) *</label>
+                                <input type="text" id="cDays" class="form-control" required>
+                            </div>
+                            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:1rem;">
+                                <div class="form-group">
+                                    <label>শুরুর সময় *</label>
+                                    <input type="time" id="cStartTime" class="form-control" required>
+                                </div>
+                                <div class="form-group">
+                                    <label>শেষের সময় *</label>
+                                    <input type="time" id="cEndTime" class="form-control" required>
+                                </div>
+                            </div>
+                            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:1rem;">
+                                <div class="form-group">
+                                    <label>প্রতি রোগীর জন্য সময় (মিনিট)</label>
+                                    <input type="number" id="cTimePerPatient" class="form-control" placeholder="যেমন: 15" required>
+                                </div>
+                                <div class="form-group">
+                                    <label>সর্বোচ্চ ক্যাপাসিটি (প্রতিদিন)</label>
+                                    <input type="number" id="cMaxPatients" class="form-control" placeholder="যেমন: 30" required>
+                                </div>
+                            </div>
+                            <button type="submit" class="btn-book" style="grid-column: span 2;">চেম্বার যোগ করুন</button>
+                        </form>
+                    </div>
+
+                    <div class="doctor-grid" id="chambersGrid">
+                        <!-- Chambers -->
+                    </div>
+                </div>
+
+                <!-- Leaves Tab -->
+                <div id="tab-leaves" class="hidden">
+                    <h2 style="margin-bottom:1.5rem;">ছুটি / অফ-ডে ম্যানেজমেন্ট</h2>
+                    <div class="dash-card" style="margin-bottom: 2rem; max-width: 500px; border-left: 4px solid var(--danger);">
+                        <form onsubmit="addLeave(event)">
+                            <div class="form-group">
+                                <label>ছুটির তারিখ নির্বাচন করুন *</label>
+                                <input type="date" id="lDate" class="form-control" required>
+                            </div>
+                            <div class="form-group">
+                                <label>কারণ (ঐচ্ছিক)</label>
+                                <input type="text" id="lReason" class="form-control">
+                            </div>
+                            <button type="submit" class="btn-book" style="background:var(--danger)">ছুটি যোগ করুন</button>
+                        </form>
+                    </div>
+
+                    <div class="dash-card">
+                        <h3>আগামী ছুটির দিনসমূহ</h3>
+                        <div class="table-responsive" style="margin-top:1rem;">
+                            <table id="leavesTable">
+                                <thead>
+                                    <tr>
+                                        <th>তারিখ</th>
+                                        <th>কারণ</th>
+                                        <th>অ্যাকশন</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr><td colspan="3" style="text-align:center;">লোড হচ্ছে...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Overrides Tab -->
+                <div id="tab-overrides" class="hidden">
+                    <h2 style="margin-bottom:1.5rem;">তারিখ অনুযায়ী ক্যাপাসিটি সেট করুন</h2>
+                    <div class="dash-card" style="margin-bottom: 2rem; max-width: 600px; border-left: 4px solid var(--primary-color);">
+                        <form onsubmit="saveOverride(event)">
+                            <div class="form-group">
+                                <label>চেম্বার নির্বাচন করুন *</label>
+                                <select id="oChamber" class="form-control" required onchange="checkExistingOverride()">
+                                    <option value="">লোড হচ্ছে...</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>তারিখ নির্বাচন করুন *</label>
+                                <input type="date" id="oDate" class="form-control" required onchange="checkExistingOverride()">
+                            </div>
+                            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:1rem;">
+                                <div class="form-group">
+                                    <label>এই দিনের সর্বোচ্চ ক্যাপাসিটি *</label>
+                                    <input type="number" id="oMax" class="form-control" placeholder="উদাঃ 20" required>
+                                </div>
+                                <div class="form-group">
+                                    <label>বুকিং স্ট্যাটাস *</label>
+                                    <select id="oStatus" class="form-control" required>
+                                        <option value="Available">Available (বুকিং চলবে)</option>
+                                        <option value="Full">Full (আজ আর বুকিং নেওয়া হবে না)</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <button type="submit" class="btn-book">সেভ করুন</button>
+                        </form>
+                    </div>
+
+                    <div class="dash-card">
+                        <h3>সেট করা স্পেশাল ক্যাপাসিটিসমূহ</h3>
+                        <div class="table-responsive" style="margin-top:1rem;">
+                            <table id="overridesTable">
+                                <thead>
+                                    <tr>
+                                        <th>তারিখ</th>
+                                        <th>চেম্বার</th>
+                                        <th>ক্যাপাসিটি</th>
+                                        <th>স্ট্যাটাস</th>
+                                        <th>অ্যাকশন</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr><td colspan="5" style="text-align:center;">লোড হচ্ছে...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Schedule Management Tab -->
+                <div id="tab-schedule" class="hidden">
+                    <h2 style="margin-bottom:1.5rem;">চেম্বার শিডিউল পরিবর্তন করুন</h2>
+                    <div class="dash-card" style="margin-bottom: 2rem; border-left: 4px solid var(--primary-color);">
+                        <form onsubmit="updateChamberSchedule(event)">
+                            <div class="form-group">
+                                <label>চেম্বার নির্বাচন করুন *</label>
+                                <select id="sChamber" class="form-control" required onchange="loadChamberSchedule()">
+                                    <option value="">চেম্বার নির্বাচন করুন</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>বসার দিনসমূহ নির্বাচন করুন *</label>
+                                <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 5px;" id="sDaysContainer">
+                                    <label><input type="checkbox" value="Sat" class="sDayCheck"> শনি (Sat)</label>
+                                    <label><input type="checkbox" value="Sun" class="sDayCheck"> রবি (Sun)</label>
+                                    <label><input type="checkbox" value="Mon" class="sDayCheck"> সোম (Mon)</label>
+                                    <label><input type="checkbox" value="Tue" class="sDayCheck"> মঙ্গল (Tue)</label>
+                                    <label><input type="checkbox" value="Wed" class="sDayCheck"> বুধ (Wed)</label>
+                                    <label><input type="checkbox" value="Thu" class="sDayCheck"> বৃহস্পতি (Thu)</label>
+                                    <label><input type="checkbox" value="Fri" class="sDayCheck"> শুক্র (Fri)</label>
+                                </div>
+                            </div>
+                            
+                            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:1rem;">
+                                <div class="form-group">
+                                    <label>শুরুর সময় *</label>
+                                    <input type="time" id="sStartTime" class="form-control" required>
+                                </div>
+                                <div class="form-group">
+                                    <label>শেষের সময় *</label>
+                                    <input type="time" id="sEndTime" class="form-control" required>
+                                </div>
+                            </div>
+                            
+                            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:1rem;">
+                                <div class="form-group">
+                                    <label>প্রতি রোগীর জন্য সময় (মিনিট)</label>
+                                    <input type="number" id="sTimePerPatient" class="form-control" required>
+                                </div>
+                                <div class="form-group">
+                                    <label>সর্বোচ্চ ক্যাপাসিটি (প্রতিদিন)</label>
+                                    <input type="number" id="sMaxPatients" class="form-control" required>
+                                </div>
+                            </div>
+                            
+                            <button type="submit" class="btn-book">শিডিউল আপডেট করুন</button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Profile Update Tab -->
+                <div id="tab-profile" class="hidden">
+                    <h2 style="margin-bottom:1.5rem;">প্রোফাইল আপডেট করুন</h2>
+                    <div class="dash-card" style="max-width: 600px;">
+                        <form id="profileForm" onsubmit="updateProfile(event)">
+                            <div class="form-group">
+                                <label>যোগাযোগের নাম্বার</label>
+                                <input type="text" id="pPhone" class="form-control" required>
+                            </div>
+                            <div class="form-group">
+                                <label>ভিজিট ফি (৳)</label>
+                                <input type="number" id="pFee" class="form-control" required>
+                            </div>
+                            <div class="form-group">
+                                <label>যেসব রোগের চিকিৎসা দেন (কমা দিয়ে লিখুন)</label>
+                                <textarea id="pDiseases" class="form-control" rows="3" placeholder="যেমন: হৃদরোগ, উচ্চ রক্তচাপ, ডায়াবেটিস"></textarea>
+                            </div>
+
+                            <button type="submit" class="btn-book" id="btnUpdateProfile">আপডেট করুন</button>
+                        </form>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentUser = null;
+
+        window.onload = () => {
+            const stored = localStorage.getItem('doctorUser');
+            if(stored) {
+                currentUser = JSON.parse(stored);
+                showDashboard();
+            }
+        };
+
+        async function handleLogin(e) {
+            e.preventDefault();
+            const btn = document.getElementById('btnLogin');
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            btn.disabled = true;
+
+            const payload = {
+                username: document.getElementById('lUsername').value,
+                password: document.getElementById('lPassword').value
+            };
+
+            try {
+                const res = await fetch('/api/doctor/login', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                
+                if(data.success) {
+                    localStorage.setItem('doctorUser', JSON.stringify(data.doctorData));
+                    currentUser = data.doctorData;
+                    showDashboard();
+                } else {
+                    alert(data.message);
+                }
+            } catch(e) {
+                alert('সার্ভার এরর');
+            }
+            
+            btn.innerHTML = 'লগিন করুন';
+            btn.disabled = false;
+        }
+
+        function showDashboard() {
+            document.getElementById('loginView').classList.add('hidden');
+            document.getElementById('dashboardView').classList.remove('hidden');
+            document.getElementById('logoutNav').style.display = 'block';
+            
+            document.getElementById('docNameDisplay').innerText = currentUser.name;
+            document.getElementById('docSpecDisplay').innerText = currentUser.specialties;
+            
+            // Fill profile form
+            document.getElementById('pPhone').value = currentUser.phone || '';
+            document.getElementById('pFee').value = currentUser.fee || '';
+            document.getElementById('pDiseases').value = currentUser.treated_diseases || '';
+            
+            loadAppointments();
+            loadChambers();
+            loadLeaves();
+            loadOverrides();
+        }
+
+        function logout() {
+            localStorage.removeItem('doctorUser');
+            window.location.reload();
+        }
+
+        function formatBanglaTime(timeString) {
+            if(!timeString) return '';
+            const [h, m] = timeString.split(':').map(Number);
+            let period = 'AM';
+            let formattedH = h;
+            
+            if(h >= 12) {
+                period = 'PM';
+                if(h > 12) formattedH = h - 12;
+            }
+            if(h === 0) formattedH = 12;
+            
+            let bContext = '';
+            if(h >= 5 && h < 12) bContext = '(সকাল)';
+            else if(h >= 12 && h < 16) bContext = '(দুপুর)';
+            else if(h >= 16 && h < 18) bContext = '(বিকাল)';
+            else if(h >= 18 && h < 20) bContext = '(সন্ধ্যা)';
+            else bContext = '(রাত)';
+            
+            return `${String(formattedH).padStart(2,'0')}:${String(m).padStart(2,'0')} ${period} ${bContext}`;
+        }
+
+        function switchTab(tab, elem) {
+            document.querySelectorAll('.sidebar-menu a').forEach(a => a.classList.remove('active'));
+            elem.classList.add('active');
+            
+            document.getElementById('tab-appointments').classList.add('hidden');
+            document.getElementById('tab-chambers').classList.add('hidden');
+            document.getElementById('tab-schedule').classList.add('hidden');
+            document.getElementById('tab-profile').classList.add('hidden');
+            document.getElementById('tab-leaves').classList.add('hidden');
+            document.getElementById('tab-overrides').classList.add('hidden');
+            document.getElementById('tab-live-tracking').classList.add('hidden');
+            
+            document.getElementById('tab-' + tab).classList.remove('hidden');
+            
+            if(tab === 'live-tracking') {
+                startLiveTracking();
+            } else {
+                if(trackingInterval) clearInterval(trackingInterval);
+            }
+        }
+
+        let allAppointments = [];
+
+        async function loadAppointments() {
+            try {
+                const res = await fetch('/api/doctor/appointments', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ doctorId: currentUser.id })
+                });
+                const data = await res.json();
+                
+                if(!data.success) {
+                    document.querySelector('#appointmentsTable tbody').innerHTML = '<tr><td colspan="7" style="text-align:center;">লোড করতে সমস্যা হয়েছে।</td></tr>';
+                    return;
+                }
+                
+                allAppointments = data.data || [];
+                // Set default date to today if not set
+                if (!document.getElementById('filterAppDate').value) {
+                    const today = new Date().toISOString().split('T')[0];
+                    if(allAppointments.some(a => a.appointment_date_formatted === today)) {
+                        document.getElementById('filterAppDate').value = today;
+                    }
+                }
+                filterAppointments();
+                
+            } catch(e) {
+                console.error(e);
+            }
+        }
+        
+        function filterAppointments() {
+            const filterDate = document.getElementById('filterAppDate').value;
+            let filtered = allAppointments;
+            
+            if (filterDate) {
+                filtered = allAppointments.filter(a => a.appointment_date_formatted === filterDate);
+            }
+            
+            const pending = filtered.filter(a => a.status === 'Confirmed' || a.status === 'Pending' || !a.status);
+            const completed = filtered.filter(a => a.status === 'Completed');
+            const cancelled = filtered.filter(a => a.status === 'Cancelled');
+            
+            document.getElementById('countPending').innerText = pending.length;
+            document.getElementById('countCompleted').innerText = completed.length;
+            document.getElementById('countCancelled').innerText = cancelled.length;
+            
+            const renderTable = (list, isCancelled, isCompleted) => {
+                if(list.length === 0) {
+                    return `<tr><td colspan="7" style="text-align:center; padding: 2rem 0; color: #94a3b8;">কোনো অ্যাপয়েন্টমেন্ট নেই।</td></tr>`;
+                }
+                return list.map(app => `
+                    <tr style="${isCancelled ? 'opacity:0.6;' : ''}">
+                        <td>
+                            <strong>${app.appointment_date_formatted}</strong><br>
+                            <span class="text-muted"><i class="far fa-clock"></i> ${formatBanglaTime(app.appointment_time)}</span><br>
+                            <small class="text-muted">${app.clinic_name}</small>
+                        </td>
+                        <td><span class="badge confirmed" style="font-size:1.1rem; ${isCompleted ? 'background:#e2fbe8; color:#1e7e34; border-color:#c3e6cb;' : ''}"># ${app.serial_number}</span></td>
+                        <td>
+                            <strong>${app.patient_name}</strong><br>
+                            <span class="text-muted"><i class="fas fa-phone-alt" style="font-size:0.8rem"></i> ${app.patient_phone}</span>
+                        </td>
+                        <td>${app.patient_age} বছর, ${app.patient_gender === 'Male' ? 'পুরুষ' : app.patient_gender === 'Female' ? 'মহিলা' : 'অন্যান্য'}</td>
+                        <td><small>${app.patient_problem || '-'}</small></td>
+                        <td>
+                            <span class="badge bg-success">৳ ${app.payment_amount} Paid</span><br>
+                            <small class="text-muted">Trx: ${app.trx_id}</small>
+                        </td>
+                        <td>
+                            <select onchange="updateAppointmentStatus(${app.id}, this.value)" class="form-control" style="width:auto; padding:0.2rem; font-size:0.9rem; margin-bottom:0.5rem;" ${isCancelled ? 'disabled' : ''}>
+                                <option value="Confirmed" ${app.status === 'Confirmed' || app.status === 'Pending' || !app.status ? 'selected' : ''}>অপেক্ষমান</option>
+                                <option value="Completed" ${app.status === 'Completed' ? 'selected' : ''}>দেখা শেষ</option>
+                                <option value="Cancelled" ${app.status === 'Cancelled' ? 'selected' : ''}>বাতিল</option>
+                            </select>
+                            <button onclick="printPrescription(${app.id})" class="btn-book" style="padding:0.2rem 0.5rem; font-size:0.8rem; width:100%; margin-bottom:0.5rem;"><i class="fas fa-print"></i> প্রেসক্রিপশন</button>
+                            <button onclick="printTestReferral(${app.id})" class="btn-book" style="background:#8e44ad; padding:0.2rem 0.5rem; font-size:0.8rem; width:100%; margin-bottom:0.5rem;"><i class="fas fa-file-medical"></i> টেস্ট রেফারাল</button>
+                            <button onclick="deleteAppointment(${app.id})" class="btn-book" style="background:var(--danger); padding:0.2rem 0.5rem; font-size:0.8rem; width:100%;"><i class="fas fa-trash"></i> ডিলিট</button>
+                        </td>
+                    </tr>
+                `).join('');
+            };
+            
+            document.querySelector('#tablePending tbody').innerHTML = renderTable(pending, false, false);
+            document.querySelector('#tableCompleted tbody').innerHTML = renderTable(completed, false, true);
+            document.querySelector('#tableCancelled tbody').innerHTML = renderTable(cancelled, true, false);
+        }
+
+        async function updateAppointmentStatus(id, status) {
+            try {
+                const res = await fetch('/api/doctor/update-appointment-status', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ doctorId: currentUser.id, appointmentId: id, status })
+                });
+                if((await res.json()).success) loadAppointments();
+            } catch(e) {
+                alert('সার্ভার এরর');
+            }
+        }
+
+        async function deleteAppointment(id) {
+            if(!confirm('আপনি কি এই অ্যাপয়েন্টমেন্ট মুছে ফেলতে চান?')) return;
+            try {
+                const res = await fetch('/api/doctor/delete-appointment', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ doctorId: currentUser.id, appointmentId: id })
+                });
+                if((await res.json()).success) loadAppointments();
+            } catch(e) {
+                alert('সার্ভার এরর');
+            }
+        }
+        
+        function printPrescription(id) {
+            localStorage.setItem('prescriptionAppId', id);
+            localStorage.setItem('allAppointments', JSON.stringify(allAppointments));
+            window.open('prescription.html', '_blank');
+        }
+
+        async function loadChambers() {
+            try {
+                const res = await fetch('/api/doctor/chambers', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ doctorId: currentUser.id })
+                });
+                const data = await res.json();
+                const grid = document.getElementById('chambersGrid');
+                
+                if(!data.success || data.data.length === 0) {
+                    grid.innerHTML = '<p class="text-muted">কোনো চেম্বার যুক্ত করা হয়নি।</p>';
+                    return;
+                }
+                
+                
+                allChambersData = data.data; // save for reference
+                
+                // Populate chamber select in overrides tab
+                const oChamber = document.getElementById('oChamber');
+                oChamber.innerHTML = '<option value="">চেম্বার নির্বাচন করুন</option>' + data.data.map(c => `<option value="${c.id}">${c.clinic_name} (${c.location})</option>`).join('');
+
+                // Populate chamber select in live tracking tab
+                const ltChamber = document.getElementById('ltChamber');
+                ltChamber.innerHTML = data.data.map(c => `<option value="${c.id}">${c.clinic_name} (${c.location})</option>`).join('');
+                document.getElementById('ltDate').value = new Date().toISOString().split('T')[0];
+
+                // Populate chamber select in schedule tab
+                const sChamber = document.getElementById('sChamber');
+                if (sChamber) {
+                    sChamber.innerHTML = '<option value="">চেম্বার নির্বাচন করুন</option>' + data.data.map(c => `<option value="${c.id}">${c.clinic_name} (${c.location})</option>`).join('');
+                }
+
+                grid.innerHTML = data.data.map(c => `
+                    <div class="chamber-item" style="background:var(--card-bg);">
+                        <h4 style="color:var(--primary-dark); font-size:1.1rem;"><i class="fas fa-hospital"></i> ${c.clinic_name}</h4>
+                        <div class="chamber-meta" style="margin-top:0.5rem;">
+                            <span><strong>ঠিকানা:</strong> ${c.location}</span>
+                            <span><strong>দিন:</strong> ${c.visiting_days}</span>
+                            <span><strong>সময়:</strong> ${formatBanglaTime(c.start_time)} - ${formatBanglaTime(c.end_time)}</span>
+                            <span><strong>ক্যাপাসিটি:</strong> ${c.max_patients || 30} জন (রোগী প্রতি: ${c.time_per_patient_min} মি.)</span>
+                            <div style="margin-top:1rem; display:flex; gap:10px; align-items:center;">
+                                <div style="flex:1;">
+                                    <label style="font-size:0.9rem; font-weight:bold;">স্ট্যাটাস:</label>
+                                    <select onchange="updateChamberStatus(${c.id}, this.value, ${c.max_patients || 30})" style="padding:0.3rem; border-radius:0.3rem; width:100%;">
+                                        <option value="Available" ${c.booking_status === 'Available' ? 'selected' : ''}>Available (খালি আছে)</option>
+                                        <option value="Full" ${c.booking_status === 'Full' ? 'selected' : ''}>Full (খালি নেই)</option>
+                                    </select>
+                                </div>
+                                <button onclick="deleteChamber(${c.id})" class="btn-book" style="background:var(--danger); width:auto; padding:0.4rem 0.8rem; margin:0; margin-top:1.4rem;"><i class="fas fa-trash"></i> ডিলিট</button>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+                
+            } catch(e) {}
+        }
+
+        function printTestReferral(id) {
+            localStorage.setItem('prescriptionAppId', id);
+            localStorage.setItem('allAppointments', JSON.stringify(allAppointments));
+            window.open('test-referral.html', '_blank');
+        }
+
+        async function deleteChamber(id) {
+            if(!confirm('আপনি কি এই চেম্বারটি মুছে ফেলতে চান? এটি মুছে ফেললে এর সমস্ত অ্যাপয়েন্টমেন্ট ও সেটিংস মুছে যাবে!')) return;
+            try {
+                const res = await fetch('/api/doctor/delete-chamber', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ doctorId: currentUser.id, chamberId: id })
+                });
+                const data = await res.json();
+                if(data.success) {
+                    alert('চেম্বার সফলভাবে মুছে ফেলা হয়েছে!');
+                    loadChambers();
+                } else {
+                    alert(data.message);
+                }
+            } catch(e) {
+                alert('সার্ভার এরর');
+            }
+        }
+
+        function loadChamberSchedule() {
+            const chamberId = document.getElementById('sChamber').value;
+            if(!chamberId) return;
+            const chamber = allChambersData.find(c => c.id == chamberId);
+            if(!chamber) return;
+            
+            // Populate days checkbox
+            const daysStr = chamber.visiting_days.toLowerCase();
+            document.querySelectorAll('.sDayCheck').forEach(chk => {
+                const val = chk.value.toLowerCase();
+                chk.checked = daysStr.includes(val);
+            });
+            
+            document.getElementById('sStartTime').value = chamber.start_time.substring(0,5);
+            document.getElementById('sEndTime').value = chamber.end_time.substring(0,5);
+            document.getElementById('sTimePerPatient').value = chamber.time_per_patient_min;
+            document.getElementById('sMaxPatients').value = chamber.max_patients;
+        }
+
+        async function updateChamberSchedule(e) {
+            e.preventDefault();
+            const chamberId = document.getElementById('sChamber').value;
+            if(!chamberId) return;
+            
+            const selectedDays = [];
+            document.querySelectorAll('.sDayCheck:checked').forEach(chk => {
+                selectedDays.push(chk.value);
+            });
+            
+            if(selectedDays.length === 0) {
+                alert('কমপক্ষে একটি দিন সিলেক্ট করুন।');
+                return;
+            }
+            
+            const payload = {
+                doctorId: currentUser.id,
+                chamberId: chamberId,
+                visitingDays: selectedDays.join(', '),
+                startTime: document.getElementById('sStartTime').value,
+                endTime: document.getElementById('sEndTime').value,
+                timePerPatient: document.getElementById('sTimePerPatient').value,
+                maxPatients: document.getElementById('sMaxPatients').value
+            };
+            
+            try {
+                const res = await fetch('/api/doctor/update-chamber-schedule', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                if(data.success) {
+                    alert('শিডিউল আপডেট হয়েছে!');
+                    loadChambers();
+                } else {
+                    alert(data.message);
+                }
+            } catch(e) {
+                alert('সার্ভার এরর');
+            }
+        }
+
+        async function addChamber(e) {
+            e.preventDefault();
+            const payload = {
+                doctorId: currentUser.id,
+                clinicName: document.getElementById('cName').value,
+                location: document.getElementById('cLoc').value,
+                visitingDays: document.getElementById('cDays').value,
+                startTime: document.getElementById('cStartTime').value,
+                endTime: document.getElementById('cEndTime').value,
+                timePerPatient: document.getElementById('cTimePerPatient').value,
+                maxPatients: document.getElementById('cMaxPatients').value
+            };
+            
+            try {
+                const res = await fetch('/api/doctor/add-chamber', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                if(data.success) {
+                    alert('চেম্বার যুক্ত হয়েছে!');
+                    document.getElementById('addChamberForm').reset();
+                    document.getElementById('addChamberForm').classList.add('hidden');
+                    loadChambers();
+                } else {
+                    alert(data.message);
+                }
+            } catch(e) {
+                alert('সার্ভার এরর');
+            }
+        }
+
+        async function updateProfile(e) {
+            e.preventDefault();
+            const btn = document.getElementById('btnUpdateProfile');
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            btn.disabled = true;
+
+            const payload = {
+                doctorId: currentUser.id,
+                phone: document.getElementById('pPhone').value,
+                fee: document.getElementById('pFee').value,
+                treated_diseases: document.getElementById('pDiseases').value
+            };
+
+            try {
+                const res = await fetch('/api/doctor/update-profile', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                
+                if(data.success) {
+                    alert(data.message);
+                    if (data.doctorData) {
+                        localStorage.setItem('doctorUser', JSON.stringify(data.doctorData));
+                        currentUser = data.doctorData;
+                    }
+                } else {
+                    alert(data.message);
+                }
+            } catch(e) {
+                alert('সার্ভার এরর');
+            }
+            
+            btn.innerHTML = 'আপডেট করুন';
+            btn.disabled = false;
+        }
+
+        async function updateChamberStatus(chamberId, status, maxPatients) {
+            try {
+                const res = await fetch('/api/doctor/update-chamber-status', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ doctorId: currentUser.id, chamberId: chamberId, bookingStatus: status, maxPatients: maxPatients })
+                });
+                const data = await res.json();
+                if(data.success) {
+                    alert('স্ট্যাটাস আপডেট হয়েছে!');
+                    loadChambers();
+                } else {
+                    alert('আপডেট ব্যর্থ হয়েছে!');
+                }
+            } catch(e) {
+                alert('সার্ভার এরর');
+            }
+        }
+
+        // Leave Management
+        async function loadLeaves() {
+            try {
+                const res = await fetch('/api/doctor/leaves', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ doctorId: currentUser.id })
+                });
+                const data = await res.json();
+                const tbody = document.querySelector('#leavesTable tbody');
+                
+                if(!data.success || data.data.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;">কোনো ছুটি নেই।</td></tr>';
+                    return;
+                }
+                
+                tbody.innerHTML = data.data.map(l => `
+                    <tr>
+                        <td><strong>${l.leave_date.substring(0,10)}</strong></td>
+                        <td>${l.reason || '-'}</td>
+                        <td><button onclick="deleteLeave(${l.id})" style="background:none; border:none; color:var(--danger); cursor:pointer;"><i class="fas fa-trash"></i> মুছুন</button></td>
+                    </tr>
+                `).join('');
+            } catch(e) {}
+        }
+
+        async function addLeave(e) {
+            e.preventDefault();
+            const payload = {
+                doctorId: currentUser.id,
+                leaveDate: document.getElementById('lDate').value,
+                reason: document.getElementById('lReason').value
+            };
+            
+            try {
+                const res = await fetch('/api/doctor/add-leave', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                if(data.success) {
+                    document.getElementById('lDate').value = '';
+                    document.getElementById('lReason').value = '';
+                    loadLeaves();
+                } else {
+                    alert(data.message);
+                }
+            } catch(e) {
+                alert('সার্ভার এরর');
+            }
+        }
+
+        async function deleteLeave(leaveId) {
+            if(!confirm('আপনি কি এই ছুটি মুছে ফেলতে চান?')) return;
+            try {
+                const res = await fetch('/api/doctor/delete-leave', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ doctorId: currentUser.id, leaveId })
+                });
+                if((await res.json()).success) loadLeaves();
+            } catch(e) {
+                alert('সার্ভার এরর');
+            }
+        }
+
+        // Overrides Management
+        let allOverridesData = [];
+        
+        async function loadOverrides() {
+            try {
+                const res = await fetch('/api/doctor/overrides', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ doctorId: currentUser.id })
+                });
+                const data = await res.json();
+                const tbody = document.querySelector('#overridesTable tbody');
+                
+                if(!data.success || data.data.length === 0) {
+                    allOverridesData = [];
+                    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">কোনো রেকর্ড নেই।</td></tr>';
+                    return;
+                }
+                
+                allOverridesData = data.data;
+                
+                tbody.innerHTML = data.data.map(o => `
+                    <tr>
+                        <td><strong>${o.override_date}</strong></td>
+                        <td>${o.clinic_name}</td>
+                        <td>${o.max_patients !== null ? o.max_patients + ' জন' : '-'}</td>
+                        <td><span class="badge ${o.booking_status === 'Full' ? 'bg-danger' : 'bg-success'}">${o.booking_status}</span></td>
+                        <td><button onclick="deleteOverride(${o.id})" style="background:none; border:none; color:var(--danger); cursor:pointer;"><i class="fas fa-trash"></i> মুছুন</button></td>
+                    </tr>
+                `).join('');
+            } catch(e) {}
+        }
+
+        let trackingInterval = null;
+
+        function startLiveTracking() {
+            const chamberId = document.getElementById('ltChamber').value;
+            const dateStr = document.getElementById('ltDate').value;
+            const display = document.getElementById('ltDisplay');
+            
+            if(trackingInterval) clearInterval(trackingInterval);
+            
+            if(!chamberId || !dateStr) {
+                display.style.display = 'none';
+                return;
+            }
+            
+            display.style.display = 'block';
+            if(!display.innerHTML.includes('সিরিয়াল')) {
+                display.innerHTML = 'লোড হচ্ছে... <i class="fas fa-spinner fa-spin"></i>';
+            }
+            
+            fetchLiveTrackingData(); // immediate fetch
+            trackingInterval = setInterval(fetchLiveTrackingData, 3000); // poll every 3 seconds
+        }
+
+        async function fetchLiveTrackingData() {
+            const chamberId = document.getElementById('ltChamber').value;
+            const dateStr = document.getElementById('ltDate').value;
+            const display = document.getElementById('ltDisplay');
+            
+            if(document.getElementById('tab-live-tracking').classList.contains('hidden')) {
+                if(trackingInterval) clearInterval(trackingInterval);
+                return;
+            }
+
+            try {
+                const res = await fetch('/api/patient/available-serials', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ chamberId: chamberId, appointmentDate: dateStr })
+                });
+                const data = await res.json();
+                
+                if(data.success) {
+                    const chamberData = allChambersData.find(c => c.id == chamberId);
+                    const baseMax = chamberData ? (chamberData.max_patients || 30) : 30;
+                    
+                    let limit = data.overrideMax !== null ? data.overrideMax : baseMax;
+                    const bookedCount = data.booked ? data.booked.length : 0;
+                    
+                    if(data.isFull) {
+                        display.innerHTML = `<h3 style="color:var(--danger); margin:0;"><i class="fas fa-ban"></i> এই তারিখে বুকিং ফুল/বন্ধ করা আছে।</h3>`;
+                        return;
+                    }
+                    
+                    const remaining = Math.max(0, limit - bookedCount);
+                    
+                    let html = `<div style="display:flex; justify-content:space-around; margin-bottom:1.5rem; font-size:1.2rem; font-weight:bold; background:var(--bg-color); padding:1rem; border-radius:0.5rem; box-shadow:inset 0 2px 4px rgba(0,0,0,0.05);">
+                        <span>মোট সিট: <span style="color:var(--primary-color)">${limit}</span></span>
+                        <span>বুকড: <span style="color:var(--danger)">${bookedCount}</span></span>
+                        <span>খালি আছে: <span style="color:var(--success)">${remaining}</span></span>
+                    </div>`;
+                    
+                    html += `<div style="display:flex; flex-wrap:wrap; gap:10px; justify-content:center;">`;
+                    for(let i=1; i<=limit; i++) {
+                        const isBooked = data.booked && data.booked.includes(i);
+                        const bgColor = isBooked ? 'var(--danger)' : 'var(--success)';
+                        html += `<div style="width:40px; height:40px; display:flex; align-items:center; justify-content:center; font-weight:bold; font-size:1.1rem; border-radius:8px; color:white; background:${bgColor}; transition:0.3s; box-shadow:0 2px 5px rgba(0,0,0,0.1);" title="সিরিয়াল ${i} ${isBooked ? '(বুকড)' : '(খালি)'}">
+                            ${i}
+                        </div>`;
+                    }
+                    html += `</div>`;
+                    
+                    display.innerHTML = html;
+                }
+            } catch(e) {}
+        }
+
+        function checkExistingOverride() {
+            const chamberId = document.getElementById('oChamber').value;
+            const dateStr = document.getElementById('oDate').value;
+            
+            if(!chamberId || !dateStr) return;
+            
+            const existing = allOverridesData.find(o => o.chamber_id == chamberId && o.override_date === dateStr);
+            if(existing) {
+                document.getElementById('oMax').value = existing.max_patients !== null ? existing.max_patients : '';
+                document.getElementById('oStatus').value = existing.booking_status;
+            } else {
+                // Not found, reset to chamber defaults
+                const chamberData = allChambersData.find(c => c.id == chamberId);
+                document.getElementById('oMax').value = chamberData ? (chamberData.max_patients || 30) : 30;
+                document.getElementById('oStatus').value = 'Available';
+            }
+        }
+
+        async function saveOverride(e) {
+            e.preventDefault();
+            const payload = {
+                doctorId: currentUser.id,
+                chamberId: document.getElementById('oChamber').value,
+                overrideDate: document.getElementById('oDate').value,
+                maxPatients: document.getElementById('oMax').value,
+                bookingStatus: document.getElementById('oStatus').value
+            };
+            
+            try {
+                const res = await fetch('/api/doctor/save-override', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                if(data.success) {
+                    document.getElementById('oDate').value = '';
+                    document.getElementById('oMax').value = '';
+                    loadOverrides();
+                    alert('সফলভাবে সেট করা হয়েছে!');
+                } else {
+                    alert(data.message);
+                }
+            } catch(e) {
+                alert('সার্ভার এরর');
+            }
+        }
+
+        async function deleteOverride(overrideId) {
+            if(!confirm('আপনি কি এই রেকর্ডটি মুছে ফেলতে চান?')) return;
+            try {
+                const res = await fetch('/api/doctor/delete-override', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ doctorId: currentUser.id, overrideId })
+                });
+                if((await res.json()).success) loadOverrides();
+            } catch(e) {
+                alert('সার্ভার এরর');
+            }
+        }
+    </script>
+</body>
+</html>
