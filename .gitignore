@@ -54,3 +54,5 @@ fix.js
 patch.js
 server.js.txt
 seed-doctors.js
+README.md
+.env.example
