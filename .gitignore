@@ -40,13 +40,17 @@ Thumbs.db
 report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 
 # Mobile App builds and configs
-LifeLine-app/donor-app/node_modules/
-LifeLine-app/donor-app/.expo/
-LifeLine-app/donor-app/dist/
-LifeLine-app/donor-app/web-build/
-LifeLine-app/donor-app/expo-env.d.ts
-LifeLine-app/donor-app/android/
-LifeLine-app/donor-app/ios/
-LifeLine-app/donor-app/google-services.json
-LifeLine-app/donor-app/.idea/
-LifeLine-app/donor-app/.vscode/
+LifeLine-app/
+
+# Files not needed for production hosting (Render)
+Lifeline_Project_Context.txt
+database.sql
+lifeline_db.sql
+doctor_login_credentials.txt
+dummy_payment_credentials.txt
+links.txt
+fix-async.js
+fix.js
+patch.js
+server.js.txt
+seed-doctors.js
