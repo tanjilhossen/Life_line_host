@@ -136,9 +136,11 @@ if (selectedDistrict) {
 }
 
 // Map Integration
+const userLat = parseFloat(userData.latitude);
+const userLng = parseFloat(userData.longitude);
 let selectedLocation = {
-    latitude: parseFloat(userData.latitude) || 23.8103,
-    longitude: parseFloat(userData.longitude) || 90.4125,
+    latitude: (!isNaN(userLat) && userLat !== 0) ? userLat : 23.8103,
+    longitude: (!isNaN(userLng) && userLng !== 0) ? userLng : 90.4125,
     address: userData.address || 'Dhaka, Bangladesh'
 };
 
@@ -161,7 +163,7 @@ function initMap() {
         container: 'locationMap',
         style: 'mapbox://styles/mapbox/dark-v11',
         center: [selectedLocation.longitude, selectedLocation.latitude],
-        zoom: userData.latitude ? 14 : 11,
+        zoom: (!isNaN(userLat) && userLat !== 0) ? 14 : 11,
         maxBounds: [[85, 19], [94, 28]]
     });
 

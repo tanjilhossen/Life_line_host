@@ -943,7 +943,9 @@
 
             // ── Add Map Marker ──
             function addMarker(h) {
-                if (!h.latitude || !h.longitude) return;
+                const lat = parseFloat(h.latitude);
+                const lng = parseFloat(h.longitude);
+                if (isNaN(lat) || isNaN(lng) || lat === 0 || lng === 0) return;
                 const el = document.createElement('div');
                 const inner = document.createElement('div');
                 inner.innerHTML = '🏥';
@@ -962,7 +964,7 @@
                 ${h.distance !== undefined ? `<br><span style="color:#1e40af;font-weight:bold;font-size:.83em">📍 ${h.distance.toFixed(1)} km দূরে</span>` : ''}
             </div>`);
                 new mapboxgl.Marker({ element: el })
-                    .setLngLat([parseFloat(h.longitude), parseFloat(h.latitude)])
+                    .setLngLat([lng, lat])
                     .setPopup(pop)
                     .addTo(hospMap);
             }

@@ -201,7 +201,7 @@ function openMapPicker(context) {
     const longitude = Number(document.querySelector(target.longitude)?.value);
     const address = document.querySelector(target.address)?.value || document.querySelector(target.location)?.value || 'Dhaka, Bangladesh';
 
-    if (Number.isFinite(latitude) && Number.isFinite(longitude)) {
+    if (Number.isFinite(latitude) && Number.isFinite(longitude) && latitude !== 0 && longitude !== 0) {
         setSelectedMapLocation({ latitude, longitude, address });
     }
 
