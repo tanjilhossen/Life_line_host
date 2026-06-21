@@ -134,7 +134,7 @@ function initMap(startLat, startLng) {
     }
 
     // ── Map Search ──
-    const searchInput   = document.getElementById('applyMapSearch');
+    const searchInput = document.getElementById('applyMapSearch');
     const searchResults = document.getElementById('applySearchResults');
     if (searchInput) {
         let searchTimeout;

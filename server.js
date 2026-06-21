@@ -7,10 +7,16 @@ const crypto = require('crypto');
 
 // Initialize Firebase Admin
 try {
-    const serviceAccount = require('./serviceAccountKey.json');
+    let serviceAccount;
+    if (process.env.FIREBASE_SERVICE_ACCOUNT) {
+        serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+    } else {
+        serviceAccount = require('./serviceAccountKey.json');
+    }
     admin.initializeApp({
         credential: admin.credential.cert(serviceAccount)
     });
+    console.log('✅ Firebase Admin initialized successfully!');
 } catch (error) {
     console.log('Firebase admin not fully configured yet, push notifications may not work:', error.message);
 }
@@ -63,7 +69,7 @@ function validateCoordinates(lat, lng) {
     const latitude = Number(lat);
     const longitude = Number(lng);
     return Number.isFinite(latitude) && latitude >= -90 && latitude <= 90 &&
-           Number.isFinite(longitude) && longitude >= -180 && longitude <= 180;
+        Number.isFinite(longitude) && longitude >= -180 && longitude <= 180;
 }
 
 function toNullableText(value) {
@@ -135,8 +141,8 @@ function buildQueueState(request, donors) {
         return {
             status: 'exhausted',
             label: '⏰ সময় শেষ / বাতিল',
-            message: isPast24Hours 
-                ? 'এই রক্তের রিকোয়েস্টের সময় পার হয়ে গেছে।' 
+            message: isPast24Hours
+                ? 'এই রক্তের রিকোয়েস্টের সময় পার হয়ে গেছে।'
                 : 'এই রক্তের রিকোয়েস্টটি বন্ধ বা বাতিল করা হয়েছে।'
         };
     }
@@ -255,7 +261,7 @@ async function sendRequestToDonor(donor, request) {
         // If token is invalid/expired, clear it
         if (error.code === 'messaging/invalid-registration-token' ||
             error.code === 'messaging/registration-token-not-registered') {
-            await dbQuery('UPDATE donors SET fcm_token = NULL WHERE id = ?', [donor.id]).catch(() => {});
+            await dbQuery('UPDATE donors SET fcm_token = NULL WHERE id = ?', [donor.id]).catch(() => { });
             console.log(`🧹 Cleared invalid FCM token for ${donor.name}`);
         }
         return false;
@@ -644,13 +650,15 @@ function setupSchema() {
 // ==========================================
 //    1. Database Connection Logic
 // ==========================================
-const db = mysql.createConnection({
-    host: process.env.DB_HOST,
+const dbConfig = process.env.MYSQL_PUBLIC_URL || process.env.MYSQL_URL || process.env.DATABASE_URL || {
+    host: process.env.DB_HOST || '127.0.0.1',
     port: process.env.DB_PORT || 3306,
-    user: process.env.DB_USER,
+    user: process.env.DB_USER || 'root',
     password: process.env.DB_PASSWORD,
-    database: process.env.DB_NAME
-});
+    database: process.env.DB_NAME || 'lifeline_db'
+};
+
+const db = mysql.createConnection(dbConfig);
 
 db.connect((err) => {
     if (err) {
@@ -730,14 +738,14 @@ app.post('/api/emergency', (req, res) => {
                 )
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             `;
-            
+
             db.query(insertRequestQuery, [
                 bloodGroup, location, district, upazila || null, latitude, longitude,
                 hospitalName, neededTime, neededTimeRaw, patientDisease, cleanPhone,
                 trackingToken
             ], async (insertErr, result) => {
                 if (insertErr) return res.status(500).json({ success: false, message: 'রিকোয়েস্ট সেভ করতে সমস্যা হয়েছে।' });
-                
+
                 const requestId = result.insertId;
 
                 try {
@@ -960,7 +968,7 @@ app.get('/api/stats', async (req, res) => {
         const donorsRes = await dbQuery("SELECT COUNT(*) AS count FROM donors");
         const hospitalsRes = await dbQuery("SELECT COUNT(*) AS count FROM hospitals WHERE status = 'Active'");
         const alertsRes = await dbQuery("SELECT COUNT(*) AS count FROM donor_requests");
-        
+
         res.json({
             success: true,
             donors: donorsRes[0].count,
@@ -1061,7 +1069,7 @@ app.post('/api/applications', (req, res) => {
 // ==========================================
 //    4. SUPER ADMIN (Master Control) APIs
 // ==========================================
-const SUPER_ADMIN_KEY = process.env.SUPER_ADMIN_KEY || "TanjilBoss@2026"; 
+const SUPER_ADMIN_KEY = process.env.SUPER_ADMIN_KEY || "TanjilBoss@2026";
 
 app.post('/api/superadmin/verify', (req, res) => {
     const rootUser = normalizeText(req.body.rootUser);
@@ -1107,7 +1115,7 @@ app.post('/api/superadmin/create-hospital', (req, res) => {
         contactPerson, licenseNumber, username, password, Number(icuAvailable), Number(emergencyBedAvailable)
     ], (err) => {
         if (err) {
-            if(err.code === 'ER_DUP_ENTRY') return res.status(400).json({ success: false, message: 'ইউজারনেমটি আগে থেকেই আছে।' });
+            if (err.code === 'ER_DUP_ENTRY') return res.status(400).json({ success: false, message: 'ইউজারনেমটি আগে থেকেই আছে।' });
             return res.status(500).json({ success: false, message: 'হসপিটাল যুক্ত করতে সমস্যা হয়েছে।' });
         }
         res.json({ success: true, message: `${name}-এর লগিন অ্যাক্সেস তৈরি সম্পন্ন হয়েছে!` });
@@ -1153,7 +1161,7 @@ app.post('/api/superadmin/create-donor', (req, res) => {
         profession, donationCount, lastDonationDate || null, age, healthNotes, username, password, status
     ], (err) => {
         if (err) {
-            if(err.code === 'ER_DUP_ENTRY') return res.status(400).json({ success: false, message: 'ইউজারনেমটি আগে থেকেই আছে।' });
+            if (err.code === 'ER_DUP_ENTRY') return res.status(400).json({ success: false, message: 'ইউজারনেমটি আগে থেকেই আছে।' });
             return res.status(500).json({ success: false, message: 'ডোনার যুক্ত করতে সমস্যা হয়েছে।' });
         }
         res.json({ success: true, message: `ডোনার ${name}-এর অ্যাকাউন্ট তৈরি হয়েছে!` });
@@ -1498,10 +1506,10 @@ app.post('/api/v1/hospital/update-beds', (req, res) => {
     }
 
     if (!apiKey) {
-        return res.status(401).json({ 
-            success: false, 
-            error: 'Unauthorized', 
-            message: 'API Key missing. Provide API Key in x-api-key header or as Bearer Token.' 
+        return res.status(401).json({
+            success: false,
+            error: 'Unauthorized',
+            message: 'API Key missing. Provide API Key in x-api-key header or as Bearer Token.'
         });
     }
 
@@ -1509,10 +1517,10 @@ app.post('/api/v1/hospital/update-beds', (req, res) => {
     const emergency = req.body.emergency_bed_available;
 
     if (icu === undefined && emergency === undefined) {
-        return res.status(400).json({ 
-            success: false, 
-            error: 'Bad Request', 
-            message: 'Provide at least one parameter to update (icu_available or emergency_bed_available).' 
+        return res.status(400).json({
+            success: false,
+            error: 'Bad Request',
+            message: 'Provide at least one parameter to update (icu_available or emergency_bed_available).'
         });
     }
 
@@ -1520,10 +1528,10 @@ app.post('/api/v1/hospital/update-beds', (req, res) => {
     db.query('SELECT id, name, icu_available, emergency_bed_available FROM hospitals WHERE api_key = ? AND status = "Active"', [apiKey], (err, results) => {
         if (err) return res.status(500).json({ success: false, error: 'Database Error', message: 'সার্ভার ডেটাবেস এরর।' });
         if (results.length === 0) {
-            return res.status(403).json({ 
-                success: false, 
-                error: 'Forbidden', 
-                message: 'Invalid API Key or hospital account is inactive.' 
+            return res.status(403).json({
+                success: false,
+                error: 'Forbidden',
+                message: 'Invalid API Key or hospital account is inactive.'
             });
         }
 
@@ -1532,16 +1540,16 @@ app.post('/api/v1/hospital/update-beds', (req, res) => {
         const newEmergency = emergency !== undefined ? Number(emergency) : hospital.emergency_bed_available;
 
         if (!isNonNegativeInteger(newIcu) || !isNonNegativeInteger(newEmergency)) {
-            return res.status(400).json({ 
-                success: false, 
-                error: 'Bad Request', 
-                message: 'Bed numbers must be non-negative integers.' 
+            return res.status(400).json({
+                success: false,
+                error: 'Bad Request',
+                message: 'Bed numbers must be non-negative integers.'
             });
         }
 
         db.query('UPDATE hospitals SET icu_available = ?, emergency_bed_available = ? WHERE id = ?', [newIcu, newEmergency, hospital.id], (updateErr) => {
             if (updateErr) return res.status(500).json({ success: false, error: 'Database Error', message: 'সিট আপডেট করতে ব্যর্থ।' });
-            
+
             res.json({
                 success: true,
                 message: 'Beds updated successfully via automated API!',
@@ -1566,7 +1574,7 @@ app.post('/api/donor/login', (req, res) => {
     const username = normalizeText(req.body.username);
     const password = normalizeText(req.body.password);
     const fcmToken = req.body.fcmToken ? normalizeText(req.body.fcmToken) : null;
-    
+
     const query = "SELECT id, name, email, phone, blood_group, location, address, latitude, longitude, profession, donation_count, last_donation_date, age, health_notes, status FROM donors WHERE username = ? AND password = ? AND status != 'Suspended'";
     db.query(query, [username, password], (err, results) => {
         if (err) return res.status(500).json({ success: false, message: 'সার্ভার এরর।' });
@@ -1584,10 +1592,28 @@ app.post('/api/donor/login', (req, res) => {
     });
 });
 
+// --- ডোনারের FCM টোকেন আপডেট ---
+app.post('/api/donor/update-fcm-token', (req, res) => {
+    const donorId = Number(req.body.donorId);
+    const fcmToken = req.body.fcmToken ? normalizeText(req.body.fcmToken) : null;
+
+    if (!Number.isInteger(donorId) || !fcmToken) {
+        return res.status(400).json({ success: false, message: 'সঠিক আইডি এবং টোকেন দেওয়া হয়নি।' });
+    }
+
+    db.query("UPDATE donors SET fcm_token = ? WHERE id = ?", [fcmToken, donorId], (err) => {
+        if (err) {
+            console.error("Failed to update FCM token for donor", donorId, err.message);
+            return res.status(500).json({ success: false, message: 'টোকেন আপডেট করতে সমস্যা হয়েছে।' });
+        }
+        res.json({ success: true, message: 'FCM টোকেন সফলভাবে আপডেট হয়েছে!' });
+    });
+});
+
 // --- ডোনারের স্ট্যাটাস পরিবর্তন (Available/Busy) ---
 app.post('/api/donor/update-status', (req, res) => {
     const donorId = Number(req.body.donorId);
-    const status  = String(req.body.status || '').trim();
+    const status = String(req.body.status || '').trim();
 
     if (!Number.isInteger(donorId) || donorId <= 0) {
         return res.status(400).json({ success: false, message: 'ডোনার আইডি সঠিক নয়।' });
@@ -1810,7 +1836,7 @@ app.post('/api/donor/web-pending', async (req, res) => {
             WHERE dr.donor_id = ? AND br.status = 'Pending' AND dr.status = 'Pending' AND dr.notified_at IS NOT NULL
         `, [donorId]);
         for (const row of activeRows) {
-            await activateNextDonor(row.request_id).catch(() => {});
+            await activateNextDonor(row.request_id).catch(() => { });
         }
 
         // Return ALL pending requests for this donor (including any still within expiry or completed)
@@ -1871,9 +1897,9 @@ app.post('/api/donor/inbox', (req, res) => {
 
 // --- ডোনারের রিকোয়েস্ট রেসপন্স (Respond) ---
 app.post('/api/donor/respond', async (req, res) => {
-    const donorId  = Number(req.body.donorId);
+    const donorId = Number(req.body.donorId);
     const requestId = Number(req.body.requestId);
-    const status   = String(req.body.status || '');
+    const status = String(req.body.status || '');
 
     if (!Number.isInteger(donorId) || donorId <= 0 ||
         !Number.isInteger(requestId) || requestId <= 0 ||
@@ -1896,7 +1922,7 @@ app.post('/api/donor/respond', async (req, res) => {
         }
 
         if (status === 'Accepted') {
-            await dbQuery('UPDATE blood_requests SET status = "Completed" WHERE id = ? AND status = "Pending"', [requestId]).catch(() => {});
+            await dbQuery('UPDATE blood_requests SET status = "Completed" WHERE id = ? AND status = "Pending"', [requestId]).catch(() => { });
         } else {
             activateNextDonor(requestId).catch(e => console.error('Activate next donor after reject:', e.message));
         }
@@ -1937,7 +1963,7 @@ app.post('/api/donor/dashboard', (req, res) => {
     `;
     db.query(query, [donorId, donorId, donorId, donorId], (err, results) => {
         if (err) return res.status(500).json({ success: false, message: 'স্ট্যাটস লোড করতে সমস্যা হয়েছে।' });
-        if(results.length > 0) {
+        if (results.length > 0) {
             res.json({ success: true, data: results[0] });
         } else {
             res.json({ success: false, message: 'ডোনার পাওয়া যায়নি।' });
@@ -1961,9 +1987,9 @@ app.post('/api/donor/request-delete', (req, res) => {
 app.post('/api/request/details', (req, res) => {
     const requestId = Number(req.body.requestId);
     db.query('SELECT * FROM blood_requests WHERE id = ?', [requestId], (err, results) => {
-        if (err) return res.status(500).json({success:false});
-        if(results.length > 0) res.json({success:true, data:results[0]});
-        else res.json({success:false, message: 'Not found'});
+        if (err) return res.status(500).json({ success: false });
+        if (results.length > 0) res.json({ success: true, data: results[0] });
+        else res.json({ success: false, message: 'Not found' });
     });
 });
 
@@ -1991,7 +2017,7 @@ app.post('/api/donor/request-response', async (req, res) => {
         }
 
         if (status === 'Accepted') {
-            await dbQuery('UPDATE blood_requests SET status = "Completed" WHERE id = ? AND status = "Pending"', [requestIdNumber]).catch(() => {});
+            await dbQuery('UPDATE blood_requests SET status = "Completed" WHERE id = ? AND status = "Pending"', [requestIdNumber]).catch(() => { });
             console.log(`✅ Donor #${donorIdNumber} accepted request #${requestIdNumber}`);
         } else {
             activateNextDonor(requestIdNumber).catch(e => console.error('Activate next donor:', e.message));
@@ -2056,8 +2082,8 @@ app.post('/api/superadmin/seed-test-donors', async (req, res) => {
                     profession, donation_count, age, username, password, status)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 25, ?, ?, ?)
             `, [donor.name, donor.email, donor.blood_group, donor.location, donor.address,
-                donor.latitude, donor.longitude, donor.phone, donor.profession,
-                donor.username, donor.password, donor.status]);
+            donor.latitude, donor.longitude, donor.phone, donor.profession,
+            donor.username, donor.password, donor.status]);
             created++;
         } catch (err) {
             if (err.code === 'ER_DUP_ENTRY') {
@@ -2108,15 +2134,15 @@ app.post('/api/superadmin/seed-test-hospitals', async (req, res) => {
         try {
             // Generate distinct api keys for test hospitals
             const apiKey = 'll_live_' + crypto.randomBytes(24).toString('hex');
-            
+
             await dbQuery(`
                 INSERT INTO hospitals (name, email, location, phone, address, latitude, longitude, 
                                       contact_person, license_number, api_key, username, password, 
                                       icu_available, emergency_bed_available, status)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Active')
             `, [h.name, h.email, h.location, h.phone, h.address, h.latitude, h.longitude,
-                h.contact_person, h.license_number, apiKey, h.username, h.password,
-                h.icu_available, h.emergency_bed_available]);
+            h.contact_person, h.license_number, apiKey, h.username, h.password,
+            h.icu_available, h.emergency_bed_available]);
             created++;
         } catch (err) {
             if (err.code === 'ER_DUP_ENTRY') {
@@ -2196,7 +2222,7 @@ app.get('/api/public/doctor-stats', async (req, res) => {
     try {
         const doctorsRes = await dbQuery("SELECT COUNT(*) AS count FROM doctors WHERE status = 'Active'");
         const chambersRes = await dbQuery("SELECT COUNT(*) AS count FROM doctor_chambers");
-        
+
         // Calculate sitting today (local Bangladesh time)
         const tzOffset = 6 * 60; // UTC+6
         const localTime = new Date().getTime() + (new Date().getTimezoneOffset() + tzOffset) * 60000;
@@ -2206,25 +2232,25 @@ app.get('/api/public/doctor-stats', async (req, res) => {
         const dayNum = String(localDate.getDate()).padStart(2, '0');
         const dateString = `${year}-${month}-${dayNum}`;
         const weekday = localDate.getDay(); // 0: Sunday, 1: Monday, ..., 6: Saturday
-        
+
         const activeDoctors = await dbQuery("SELECT id FROM doctors WHERE status = 'Active'");
         const activeDoctorIds = new Set(activeDoctors.map(d => d.id));
-        
+
         let sittingTodayCount = 0;
-        
+
         if (activeDoctorIds.size > 0) {
             const allChambers = await dbQuery("SELECT id, doctor_id, visiting_days FROM doctor_chambers WHERE doctor_id IN (?)", [Array.from(activeDoctorIds)]);
             const leaves = await dbQuery("SELECT doctor_id FROM doctor_leaves WHERE leave_date = ? AND doctor_id IN (?)", [dateString, Array.from(activeDoctorIds)]);
             const leavesSet = new Set(leaves.map(l => l.doctor_id));
-            
+
             const overrides = await dbQuery("SELECT id, doctor_id, chamber_id, booking_status FROM chamber_date_overrides WHERE override_date = ? AND doctor_id IN (?)", [dateString, Array.from(activeDoctorIds)]);
             const overridesMap = new Map();
             overrides.forEach(o => {
                 overridesMap.set(`${o.chamber_id}_${dateString}`, o);
             });
-            
+
             const sittingDoctorIds = new Set();
-            
+
             const validDaysMap = {
                 'saturday': 6, 'sat': 6, 'শনি': 6,
                 'sunday': 0, 'sun': 0, 'রবি': 0,
@@ -2237,10 +2263,10 @@ app.get('/api/public/doctor-stats', async (req, res) => {
 
             allChambers.forEach(c => {
                 if (sittingDoctorIds.has(c.doctor_id)) return;
-                
+
                 // Check if on leave
                 if (leavesSet.has(c.doctor_id)) return;
-                
+
                 // Check overrides
                 const override = overridesMap.get(`${c.id}_${dateString}`);
                 if (override) {
@@ -2250,29 +2276,29 @@ app.get('/api/public/doctor-stats', async (req, res) => {
                         return;
                     }
                 }
-                
+
                 // Check visiting days
                 const daysStr = String(c.visiting_days || '').toLowerCase();
                 let allowed = [];
-                if (daysStr.includes('everyday except friday')) allowed = [0,1,2,3,4,6];
-                else if (daysStr.includes('everyday')) allowed = [0,1,2,3,4,5,6];
+                if (daysStr.includes('everyday except friday')) allowed = [0, 1, 2, 3, 4, 6];
+                else if (daysStr.includes('everyday')) allowed = [0, 1, 2, 3, 4, 5, 6];
                 else {
                     for (const [key, val] of Object.entries(validDaysMap)) {
                         if (daysStr.includes(key) && !allowed.includes(val)) {
                             allowed.push(val);
                         }
                     }
-                    if (allowed.length === 0) allowed = [0,1,2,3,4,5,6];
+                    if (allowed.length === 0) allowed = [0, 1, 2, 3, 4, 5, 6];
                 }
-                
+
                 if (allowed.includes(weekday)) {
                     sittingDoctorIds.add(c.doctor_id);
                 }
             });
-            
+
             sittingTodayCount = sittingDoctorIds.size;
         }
-        
+
         res.json({
             success: true,
             doctors: doctorsRes[0].count,
@@ -2294,16 +2320,16 @@ app.get('/api/public/doctors', (req, res) => {
         query += " AND district = ?";
         params.push(district);
     }
-    
+
     db.query(query, params, (err, doctors) => {
         if (err) return res.status(500).json({ success: false, message: 'ডাক্তার লোড করতে সমস্যা হয়েছে।' });
         if (doctors.length === 0) return res.json({ success: true, data: [] });
-        
+
         // Fetch chambers
         const doctorIds = doctors.map(d => d.id);
         db.query("SELECT * FROM doctor_chambers WHERE doctor_id IN (?)", [doctorIds], (err, chambers) => {
             if (err) return res.status(500).json({ success: false, message: 'চেম্বার লোড করতে সমস্যা হয়েছে।' });
-            
+
             db.query("SELECT doctor_id, DATE_FORMAT(leave_date, '%Y-%m-%d') as leave_date FROM doctor_leaves WHERE doctor_id IN (?) AND leave_date >= CURDATE()", [doctorIds], (err, leaves) => {
                 const leavesMap = {};
                 if (leaves) {
@@ -2312,7 +2338,7 @@ app.get('/api/public/doctors', (req, res) => {
                         leavesMap[l.doctor_id].push(l.leave_date);
                     });
                 }
-                
+
                 db.query("SELECT doctor_id, chamber_id, DATE_FORMAT(override_date, '%Y-%m-%d') as override_date, max_patients, booking_status FROM chamber_date_overrides WHERE doctor_id IN (?)", [doctorIds], (err, overrides) => {
                     const overridesMap = {};
                     if (overrides) {
@@ -2321,7 +2347,7 @@ app.get('/api/public/doctors', (req, res) => {
                             overridesMap[o.doctor_id].push(o);
                         });
                     }
-                    
+
                     const docs = doctors.map(doc => {
                         return {
                             ...doc,
@@ -2368,24 +2394,24 @@ app.get('/api/public/chamber/:chamberId/fully-booked-dates', (req, res) => {
     db.query("SELECT max_patients FROM doctor_chambers WHERE id = ?", [chamberId], (err, chambers) => {
         if (err || chambers.length === 0) return res.json({ success: true, dates: [] });
         const baseMax = chambers[0].max_patients;
-        
+
         db.query("SELECT DATE_FORMAT(appointment_date, '%Y-%m-%d') as date, COUNT(*) as cnt FROM doctor_appointments WHERE chamber_id = ? GROUP BY appointment_date", [chamberId], (err, appts) => {
             const counts = {};
-            if(appts) appts.forEach(a => counts[a.date] = a.cnt);
-            
+            if (appts) appts.forEach(a => counts[a.date] = a.cnt);
+
             db.query("SELECT DATE_FORMAT(override_date, '%Y-%m-%d') as date, max_patients, booking_status FROM chamber_date_overrides WHERE chamber_id = ?", [chamberId], (err, overs) => {
                 const overrides = {};
-                if(overs) overs.forEach(o => overrides[o.date] = o);
-                
+                if (overs) overs.forEach(o => overrides[o.date] = o);
+
                 let fullyBooked = [];
-                for(let d in counts) {
+                for (let d in counts) {
                     let limit = overrides[d] && overrides[d].max_patients !== null ? overrides[d].max_patients : baseMax;
-                    if(counts[d] >= limit) fullyBooked.push(d);
+                    if (counts[d] >= limit) fullyBooked.push(d);
                 }
-                
-                for(let d in overrides) {
-                    if(overrides[d].booking_status === 'Full' || overrides[d].max_patients === 0) {
-                        if(!fullyBooked.includes(d)) fullyBooked.push(d);
+
+                for (let d in overrides) {
+                    if (overrides[d].booking_status === 'Full' || overrides[d].max_patients === 0) {
+                        if (!fullyBooked.includes(d)) fullyBooked.push(d);
                     }
                 }
                 res.json({ success: true, dates: fullyBooked });
@@ -2398,7 +2424,7 @@ app.get('/api/public/chamber/:chamberId/fully-booked-dates', (req, res) => {
 app.post('/api/patient/available-serials', (req, res) => {
     const { chamberId, appointmentDate } = req.body;
     db.query("SELECT doctor_id, visiting_days, max_patients FROM doctor_chambers WHERE id = ?", [chamberId], (err, chamberRes) => {
-        if(err || chamberRes.length === 0) return res.json({ success: false, message: 'Chamber not found' });
+        if (err || chamberRes.length === 0) return res.json({ success: false, message: 'Chamber not found' });
         const doctorId = chamberRes[0].doctor_id;
         const visitingDays = chamberRes[0].visiting_days;
         const maxPatients = chamberRes[0].max_patients || 30;
@@ -2420,28 +2446,28 @@ app.post('/api/patient/available-serials', (req, res) => {
         };
         let daysStr = visitingDays.toLowerCase();
         let allowed = [];
-        if(daysStr.includes('everyday except friday')) allowed = [0,1,2,3,4,6];
-        else if(daysStr.includes('everyday')) allowed = [0,1,2,3,4,5,6];
+        if (daysStr.includes('everyday except friday')) allowed = [0, 1, 2, 3, 4, 6];
+        else if (daysStr.includes('everyday')) allowed = [0, 1, 2, 3, 4, 5, 6];
         else {
             for (const [key, val] of Object.entries(validDaysMap)) {
-                if(daysStr.includes(key) && !allowed.includes(val)) {
+                if (daysStr.includes(key) && !allowed.includes(val)) {
                     allowed.push(val);
                 }
             }
-            if(allowed.length === 0) allowed = [0,1,2,3,4,5,6];
+            if (allowed.length === 0) allowed = [0, 1, 2, 3, 4, 5, 6];
         }
 
         const isNormalSittingDay = allowed.includes(day);
 
         db.query("SELECT * FROM doctor_leaves WHERE doctor_id = ? AND leave_date = ?", [doctorId, appointmentDate], (err, leaves) => {
             const isLeave = leaves && leaves.length > 0;
-            
+
             db.query("SELECT * FROM chamber_date_overrides WHERE chamber_id = ? AND override_date = ?", [chamberId, appointmentDate], (err, overs) => {
                 const override = overs && overs.length > 0 ? overs[0] : null;
-                
+
                 let isAvailable = isNormalSittingDay && !isLeave;
                 let finalLimit = maxPatients;
-                
+
                 if (override) {
                     if (override.booking_status === 'Available') {
                         isAvailable = true;
@@ -2450,11 +2476,11 @@ app.post('/api/patient/available-serials', (req, res) => {
                         isAvailable = false;
                     }
                 }
-                
-                if(!isAvailable) {
+
+                if (!isAvailable) {
                     return res.json({ success: true, booked: [], isFull: true });
                 }
-                
+
                 db.query("SELECT serial_number FROM doctor_appointments WHERE chamber_id = ? AND appointment_date = ? AND status != 'Cancelled'", [chamberId, appointmentDate], (err, results) => {
                     if (err) return res.status(500).json({ success: false, message: 'সার্ভার এরর।' });
                     const booked = results.map(r => r.serial_number);
@@ -2467,7 +2493,7 @@ app.post('/api/patient/available-serials', (req, res) => {
 
 app.post('/api/patient/book-appointment', (req, res) => {
     const { doctorId, chamberId, patientName, patientPhone, patientEmail, patientAge, patientGender, patientProblem, appointmentDate, paymentMethod, trxId, paymentAmount, serialNumber } = req.body;
-    
+
     if (!doctorId || !chamberId || !patientName || !patientPhone || !patientAge || !patientGender || !appointmentDate || !paymentMethod || !trxId || !serialNumber) {
         return res.status(400).json({ success: false, message: 'সবগুলো তথ্য সঠিকভাবে পূরণ করুন।' });
     }
@@ -2491,33 +2517,33 @@ app.post('/api/patient/book-appointment', (req, res) => {
     if (!Number.isInteger(age) || age < 0 || age > 120) {
         return res.status(400).json({ success: false, message: 'রোগীর বয়স ০ থেকে ১২০ এর মধ্যে হতে হবে।' });
     }
-    
+
     // Check chamber and get timing
     db.query("SELECT * FROM doctor_chambers WHERE id = ? AND doctor_id = ?", [chamberId, doctorId], (err, chambers) => {
         if (err || chambers.length === 0) return res.status(400).json({ success: false, message: 'চেম্বার পাওয়া যায়নি।' });
-        
+
         const chamber = chambers[0];
-        
+
         // Check if serial is already booked
         db.query("SELECT id FROM doctor_appointments WHERE chamber_id = ? AND appointment_date = ? AND serial_number = ?", [chamberId, appointmentDate, serialNumber], (err, existing) => {
             if (err) return res.status(500).json({ success: false, message: 'সার্ভার এরর।' });
             if (existing.length > 0) return res.status(400).json({ success: false, message: 'এই সিরিয়ালটি ইতিমধ্যে বুক হয়ে গেছে। অন্য সিরিয়াল নির্বাচন করুন।' });
-            
+
             // Calculate time based on chosen serial
             const startTimeString = chamber.start_time; // '18:00:00'
             const [hours, minutes, seconds] = startTimeString.split(':').map(Number);
             let appointmentTimeMin = hours * 60 + minutes + ((serialNumber - 1) * chamber.time_per_patient_min);
             let reportingTimeMin = appointmentTimeMin - 15; // 15 mins before
-            
+
             const formatTime = (totalMin) => {
                 let h = Math.floor(totalMin / 60) % 24;
                 let m = totalMin % 60;
                 return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:00`;
             };
-            
+
             const appointmentTime = formatTime(appointmentTimeMin);
             const reportingTime = formatTime(reportingTimeMin);
-            
+
             const insertQuery = `
                 INSERT INTO doctor_appointments (
                     doctor_id, chamber_id, patient_name, patient_phone, patient_email, 
@@ -2526,16 +2552,16 @@ app.post('/api/patient/book-appointment', (req, res) => {
                     trx_id, payment_amount, status
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Confirmed')
             `;
-            
+
             db.query(insertQuery, [
                 doctorId, chamberId, patientName, cleanPhone, patientEmail || null,
                 age, patientGender, patientProblem || '', appointmentDate,
                 appointmentTime, reportingTime, serialNumber, paymentMethod, trxId, paymentAmount || 100
             ], (err, result) => {
                 if (err) return res.status(500).json({ success: false, message: 'অ্যাপয়েন্টমেন্ট বুকিং ব্যর্থ হয়েছে।' });
-                
+
                 res.json({
-                    success: true, 
+                    success: true,
                     message: 'অ্যাপয়েন্টমেন্ট সফলভাবে কনফার্ম হয়েছে!',
                     data: {
                         appointmentId: result.insertId,
@@ -2578,7 +2604,7 @@ app.post('/api/doctor/login', (req, res) => {
 app.post('/api/doctor/appointments', (req, res) => {
     const { doctorId } = req.body;
     if (!doctorId) return res.status(400).json({ success: false, message: 'ডক্টর আইডি প্রয়োজন।' });
-    
+
     db.query(`
         SELECT a.*, DATE_FORMAT(a.appointment_date, '%Y-%m-%d') as appointment_date_formatted, c.clinic_name, c.location 
         FROM doctor_appointments a
@@ -2595,13 +2621,13 @@ app.post('/api/doctor/appointments', (req, res) => {
 app.post('/api/doctor/update-profile', (req, res) => {
     const { doctorId, phone, fee, treated_diseases } = req.body;
     if (!doctorId) return res.status(400).json({ success: false, message: 'ডক্টর আইডি প্রয়োজন।' });
-    
+
     let updateQuery = "UPDATE doctors SET phone = ?, fee = ?, treated_diseases = ? WHERE id = ?";
     let params = [phone, fee, treated_diseases, doctorId];
-    
+
     db.query(updateQuery, params, (err, result) => {
         if (err) return res.status(500).json({ success: false, message: 'আপডেট করতে সমস্যা হয়েছে।' });
-        
+
         db.query("SELECT * FROM doctors WHERE id = ?", [doctorId], (err, docs) => {
             if (err || docs.length === 0) return res.json({ success: true, message: 'আপডেট সফল হয়েছে!' });
             res.json({ success: true, message: 'প্রোফাইল আপডেট সফল হয়েছে!', doctorData: docs[0] });
@@ -2613,17 +2639,17 @@ app.post('/api/doctor/update-profile', (req, res) => {
 app.post('/api/superadmin/create-doctor', (req, res) => {
     const { masterKey, name, email, phone, district, specialties, designation, experience_years, fee, username, password } = req.body;
     if (masterKey !== SUPER_ADMIN_KEY) return res.status(403).json({ success: false, message: 'Access Denied!' });
-    
-    if(!name || !phone || !district || !specialties || !username || !password) {
+
+    if (!name || !phone || !district || !specialties || !username || !password) {
         return res.status(400).json({ success: false, message: 'প্রয়োজনীয় তথ্য দিন।' });
     }
-    
+
     db.query(`
         INSERT INTO doctors (name, email, phone, district, specialties, designation, experience_years, fee, username, password)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `, [name, email || null, phone, district, specialties, designation || null, experience_years || null, fee || 100, username, password], (err, result) => {
         if (err) {
-            if(err.code === 'ER_DUP_ENTRY') return res.status(400).json({ success: false, message: 'ইউজারনেমটি আগে থেকেই আছে।' });
+            if (err.code === 'ER_DUP_ENTRY') return res.status(400).json({ success: false, message: 'ইউজারনেমটি আগে থেকেই আছে।' });
             return res.status(500).json({ success: false, message: 'ডাক্তার যুক্ত করতে সমস্যা হয়েছে।' });
         }
         res.json({ success: true, message: 'ডাক্তার অ্যাকাউন্ট তৈরি হয়েছে!', doctorId: result.insertId });
@@ -2675,7 +2701,7 @@ app.post('/api/doctor/add-leave', (req, res) => {
     const { doctorId, leaveDate, reason } = req.body;
     db.query("INSERT INTO doctor_leaves (doctor_id, leave_date, reason) VALUES (?, ?, ?)", [doctorId, leaveDate, reason || ''], (err, result) => {
         if (err) {
-            if(err.code === 'ER_DUP_ENTRY') return res.status(400).json({ success: false, message: 'এই দিনের ছুটি আগে থেকেই যুক্ত করা আছে।' });
+            if (err.code === 'ER_DUP_ENTRY') return res.status(400).json({ success: false, message: 'এই দিনের ছুটি আগে থেকেই যুক্ত করা আছে।' });
             return res.status(500).json({ success: false, message: 'ছুটি যুক্ত করতে সমস্যা হয়েছে।' });
         }
         res.json({ success: true, message: 'ছুটি যুক্ত হয়েছে!' });
